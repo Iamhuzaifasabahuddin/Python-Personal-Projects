@@ -9,7 +9,7 @@ def add_items(item: str):
         print("Task already exist")
     with open("tasks.txt", "w") as f:
         for index, items in enumerate(Tasks):
-            f.write(str(index)+" "+items)
+            f.write(str(index) + " " + items + "\n")
 
 
 def view_list():
@@ -24,8 +24,8 @@ def complete_list(item: str):
         Tasks.remove(item)
         print("Task has been removed")
     with open("tasks.txt", "w") as f:
-        for index, items in enumerate(Tasks):
-            f.write(str(index) + " " + items)
+        for index, items in enumerate(Tasks, start=1):
+            f.write(str(index) + " " + items + "\n")
 
 
 if __name__ == "__main__":
