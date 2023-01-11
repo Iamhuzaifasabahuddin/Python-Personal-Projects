@@ -2,7 +2,7 @@ import random
 
 try:
     def guess_number_user(x):
-        number = random.randrange(1,x)
+        number = random.randrange(1, x)
         chances = 3
         attempt = 0
         print(f"You have {chances} chances to guess the number correctly")
