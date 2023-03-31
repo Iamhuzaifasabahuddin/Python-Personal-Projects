@@ -44,6 +44,7 @@ def main():
                              font=("oswald", 20), pady=10)
     special_label.pack()
 
+
     special_entry = tk.Entry(window, font=("oswald", 20))
     special_entry.insert(0, 'True')
     special_entry.pack()
