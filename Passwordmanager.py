@@ -24,18 +24,19 @@ def add(account, username, password):
 
 def remove(account):
     found = False
-    print(f"Removing account '{account}'...")
     with open("Passwords.txt", 'r') as f, open("temp.txt", 'w') as temp:
         for line in f:
-            if not line.startswith(f"Account: {account.capitalize()},"):
+            if not line.startswith(f"Account: {account},"):
                 temp.write(line)
             else:
                 found = True
-        if not found:
-            print(f"Account '{account}' doesn't exist")
-        else:
-            os.replace("temp.txt", "Passwords.txt")
-            print(f"Account '{account}' successfully removed")
+    if not found:
+        print(f"Account '{account}' doesn't exist")
+    else:
+        print(f"Removing account '{account}'...")
+        os.replace('temp.txt', 'Passwords.txt')
+        print(f"Account '{account}' successfully removed")
+
 
 
 def view():
@@ -57,6 +58,8 @@ def search(account):
         for line in f:
             if line.startswith(f"Account: {account},"):
                 print(line)
+            else:
+                print(f"Account: {account} not found")
 
 
 def main():
@@ -72,7 +75,7 @@ def main():
                         print("Invalid operation")
                     else:
                         if op == "add":
-                            ac = str(input("Enter account: "))
+                            ac = str(input("Enter account: ")).capitalize()
                             if exists(ac) is False:
                                 un = str(input("Enter username: "))
                                 pw = pwinput.pwinput(prompt="Enter password: ", mask="X")
@@ -99,7 +102,7 @@ def main():
             print("Invalid master password")
         if count < attempts - 1:
             print("Please try again...")
-            time.sleep(5)
+            time.sleep(2)
         else:
             print("Try again later...")
             break
