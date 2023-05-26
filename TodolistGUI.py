@@ -61,13 +61,14 @@ def main():
     window.title("Task Manager")
 
 
+    message_label = tk.Label(window, text="", font=("oswald", 16))
+    message_label.pack()
+
     add_label = tk.Label(window, text="Add task:", font=("oswald", 20, "italic"))
     add_entry = tk.Entry(window, font=("oswald", 20))
     add_button = tk.Button(window, text="Add",
                            command=lambda: on_add_click(add_entry, task_listbox, message_label),  font=("oswald", 20))
 
-    message_label = tk.Label(window, text="", font=("oswald", 16))
-    message_label.pack()
 
     complete_label = tk.Label(window, text="Mark task as complete:", font=("oswald", 20, "italic"))
     complete_entry = tk.Entry(window,  font=("oswald", 20))
