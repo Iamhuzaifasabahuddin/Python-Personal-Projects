@@ -12,4 +12,5 @@ def decipher(text, translator):
 
 if __name__ == '__main__':
     print(decipher(cipher, dictionary))
+    print(cipher)
 
