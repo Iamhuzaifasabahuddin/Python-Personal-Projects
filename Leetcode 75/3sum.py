@@ -26,7 +26,7 @@ class Solution(object):
                    # if to decrement it the previous conditions do that for you.
                    # We could also use 3 for loop method
                    # for i in range(len(nums)-2): because last two wont be checked.
-                   #     for j in rane(i,len(nums)-1): last wont be checked.
-                   #         for k in range(j, len(nums)):
+                   #     for j in rane(i+1,len(nums)-1): last wont be checked.
+                   #         for k in range(j+1, len(nums)):
 
         return result
