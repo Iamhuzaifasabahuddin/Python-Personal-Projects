@@ -37,19 +37,25 @@ def main():
         with open('token2.json', 'w') as token:
             token.write(creds.to_json())
     while True:
-        operation = input("Enter an operation add, commit, view or exit: ")
+        operation = input("Enter an operation add, commit, view or exit: ").lower()
         if operation == 'add':
             des = str(input("Enter description: ")).upper()
             hr = float(input("Enter Hours: "))
             add_event(creds, des, hr)
         if operation == 'view':
             num = int(input("Enter number of days to view: "))
-            getHours(num)
+            get_Hours(num)
         if operation == 'commit':
             commit_hours(creds)
+        if operation == 'search':
+            inp = str(input("Enter search date format is YYY-MM-DD: "))
+            Search(inp)
+        if operation == 'remove':
+            inp = str(input("Enter search date format is YYY-MM-DD: "))
+            Remove(inp)
         if operation == 'exit':
             break
-        elif operation not in ['add', 'view', 'commit', 'exit']:
+        elif operation not in ['add', 'view', 'commit', 'search', 'remove', 'exit']:
             print("Enter a valid operation")
 
 
@@ -89,7 +95,7 @@ def commit_hours(creds):
     # adding the hours to the database
     Connection = sqlite3.connect('Timetable.db')
     cursor = Connection.cursor()
-    print("Opened database successfully")
+    print("\nOpened database successfully\n")
     date = datetime.date.today()
 
     formatted_total_duration = total_duration.seconds / 60 / 60
@@ -102,7 +108,7 @@ def commit_hours(creds):
 def add_event(creds, description: str, duration: float):
     try:
         start_time = datetime.datetime.utcnow()
-        end_time = datetime.datetime.utcnow() + datetime.timedelta(hours=int(duration))
+        end_time = datetime.datetime.utcnow() + datetime.timedelta(hours=float(duration))
         start_time_formatted = start_time.isoformat() + 'Z'
         end_time_formatted = end_time.isoformat() + 'Z'
 
@@ -127,7 +133,7 @@ def add_event(creds, description: str, duration: float):
         print('An error occurred: %s' % error)
 
 
-def getHours(Number_of_days: int):
+def get_Hours(Number_of_days: int):
     try:
         today = datetime.date.today()
         when_from = today + datetime.timedelta(days=-int(Number_of_days))
@@ -141,11 +147,41 @@ def getHours(Number_of_days: int):
         for element in hours:
             print(f"{element[0]}: {element[1]}")
             total_hours += element[1]
-        print(f"Total hours: {total_hours}")
+        print(f"\nTotal hours: {total_hours}")
         print(f"Average hours: {total_hours / float(Number_of_days):.2f}")
 
     except Exception as e:
         print("An error occurred", e)
+
+
+def Search(date):
+    Connection = sqlite3.connect('Timetable.db')
+    Cursor = Connection.cursor()
+    Cursor.execute(f"SELECT DATE, HOURS FROM hours WHERE DATE=?", (date,))
+
+    result = Cursor.fetchall()
+
+    if not result:
+        print(f"No results found for date: {date}")
+    else:
+        print("Getting results...")
+        for row in result:
+            print(f"Date: {row[0]}, Hours: {row[1]}")
+
+
+def Remove(date):
+    Connection = sqlite3.connect('Timetable.db')
+    Cursor = Connection.cursor()
+    Cursor.execute(f"SELECT DATE, HOURS FROM hours WHERE DATE=?", (date,))
+
+    result = Cursor.fetchall()
+
+    if not result:
+        print(f"No results found for date: {date}")
+    else:
+        Cursor.execute("DELETE FROM hours WHERE DATE=?", (date,))
+        Connection.commit()
+        print(f"Removed entries for date: {date}")
 
 
 if __name__ == '__main__':
