@@ -130,7 +130,7 @@ def add_event(creds, description: str, duration: float):
 def getHours(Number_of_days: int):
     try:
         today = datetime.date.today()
-        when_from = today + datetime.timedelta(days=-int(Number_of_days))
+        when_from = today + datetime.timedelta(days=-int(Number_of_days)) # goes back from the day till today
         Connection = sqlite3.connect('Timetable.db')
         Cursor = Connection.cursor()
         Cursor.execute(f"SELECT DATE, HOURS FROM hours WHERE DATE between ? AND ?", (when_from, today))
