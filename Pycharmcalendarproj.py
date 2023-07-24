@@ -133,7 +133,7 @@ def getHours(Number_of_days: int):
         when_from = today + datetime.timedelta(days=-int(Number_of_days)) # goes back from the day till today
         Connection = sqlite3.connect('Timetable.db')
         Cursor = Connection.cursor()
-        Cursor.execute(f"SELECT DATE, HOURS FROM hours WHERE DATE between ? AND ?", (when_from, today))
+        Cursor.execute(f"SELECT DATE, HOURS FROM Timetable WHERE DATE between ? AND ?", (when_from, today))
 
         hours = Cursor.fetchall()
 
