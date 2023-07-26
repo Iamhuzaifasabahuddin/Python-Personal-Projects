@@ -37,7 +37,7 @@ def main():
         with open('token2.json', 'w') as token:
             token.write(creds.to_json())
     while True:
-        operation = input("Enter an operation add, commit, view or exit: ").lower()
+        operation = input("Enter an operation add, commit, view, search, remove, or exit: ").lower()
         if operation == 'add':
             des = str(input("Enter description: ")).upper()
             hr = float(input("Enter Hours: "))
