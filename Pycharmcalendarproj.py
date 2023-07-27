@@ -46,7 +46,11 @@ def main():
             num = int(input("Enter number of days to view: "))
             get_Hours(num)
         if operation == 'commit':
-            commit_hours(creds)
+            dated = str(input("Enter date to get hours: "))
+            if dated is None or dated == "":
+                commit_hours(creds, None)
+            else:
+                commit_hours(creds, dated)
         if operation == 'search':
             inp = str(input("Enter search date format is YYY-MM-DD: "))
             Search(inp)
@@ -59,10 +63,18 @@ def main():
             print("Enter a valid operation")
 
 
-def commit_hours(creds):
+def commit_hours(creds, date):
     service = build('calendar', 'v3', credentials=creds)
 
-    today = datetime.date.today()
+    if date is None:
+        today = datetime.date.today()
+    else:
+        try:
+            today = datetime.datetime.strptime(date, "%Y-%m-%d").date()
+        except ValueError:
+            print("Invalid date format. Please use the format YYYY-MM-DD.")
+            return
+
     start_time = str(today) + "T00:00:00Z"
     end_time = str(today) + "T23:59:59Z"
 
@@ -74,11 +86,7 @@ def commit_hours(creds):
     if not events:
         print('No upcoming events found.')
         return
-    total_duration = datetime.timedelta(
-        seconds=0,
-        minutes=0,
-        hours=0,
-    )
+    total_duration = datetime.timedelta(seconds=0)
 
     for event in events:
         start = event['start'].get('dateTime', event['start'].get('date'))
@@ -96,10 +104,9 @@ def commit_hours(creds):
     Connection = sqlite3.connect('Timetable.db')
     cursor = Connection.cursor()
     print("\nOpened database successfully\n")
-    date = datetime.date.today()
 
-    formatted_total_duration = total_duration.seconds / 60 / 60
-    coding_hours = (date, 'CODING', formatted_total_duration)
+    formatted_total_duration = total_duration.seconds / 3600
+    coding_hours = (today.strftime('%Y-%m-%d'), 'CODING', formatted_total_duration)
     cursor.execute("INSERT INTO hours VALUES(?, ?, ?);", coding_hours)
     Connection.commit()
     print("Coding hours added to database successfully")
@@ -136,7 +143,7 @@ def add_event(creds, description: str, duration: float):
 def get_Hours(Number_of_days: int):
     try:
         today = datetime.date.today()
-        when_from = today + datetime.timedelta(days=-int(Number_of_days)) # goes back from the day till today
+        when_from = today + datetime.timedelta(days=-int(Number_of_days))  # goes back from the day till today
         Connection = sqlite3.connect('Timetable.db')
         Cursor = Connection.cursor()
         Cursor.execute(f"SELECT DATE, HOURS FROM hours WHERE DATE between ? AND ?", (when_from, today))
