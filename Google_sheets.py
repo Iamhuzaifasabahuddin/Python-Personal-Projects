@@ -27,7 +27,7 @@ def main():
             creds.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
-                "credentials.json", SCOPES)
+                "Sheets_Credentials.json", SCOPES)
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
         with open('token.json', 'w') as token:
@@ -41,8 +41,11 @@ def main():
         result = sheet.values().get(spreadsheetId=SPREADSHEET_ID,
                                     range="Sheet1!A2:C6").execute()
         for row in range(2,7):
-            num1 = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range = f"Sheet1!A{row}").execute().get("values")[0][0]
-            num2 = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range = f"Sheet1!B{row}").execute().get("values")[0][0]
+            num1 = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=f"Sheet1!A{row}").execute().get("values")[0][
+                0]
+
+            num2 = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=f"Sheet1!B{row}").execute().get("values")[0][
+                0]
             calculate_res = num1 + num2
             print(f"Processing {num1} and {num2}")
 
@@ -50,7 +53,6 @@ def main():
                                   valueInputOption = "USER_ENTERED", body = {"values": [[f"{calculate_res}"]]}).execute()
             sheet.values().update(spreadsheetId=SPREADSHEET_ID, range=f"Sheet1!D{row}",
                                   valueInputOption="USER_ENTERED", body={"values": [["DONE"]]}).execute()
-
 
     except HttpError as err:
         print(err)
