@@ -19,23 +19,6 @@ def quote_generator():
     return quote
 
 
-@bot.group(name='functions', help="Group of bot functions.")
-async def bot_functions(ctx):
-    if ctx.invoked_subcommand is None:
-        await ctx.send("Invalid command. Use $help functions to see available subcommands.")
-
-
-@bot_functions.command(name="hello", help="Greets the user with a hello message.")
-async def hello(ctx):
-    await ctx.send(f'Hello {ctx.author.mention}!')
-
-
-@bot_functions.command(name="inspire", help="Get an inspirational quote.")
-async def inspire(ctx):
-    quote = quote_generator()
-    await ctx.send(quote)
-
-
 @bot.event
 async def on_ready():
     print('We have logged in as {0.user}'.format(bot))
@@ -43,6 +26,7 @@ async def on_ready():
 
 @bot.command()
 async def hello(ctx):
+    """command to greet"""
     await ctx.send(f'Hello {ctx.author.mention}!')
 
 
@@ -60,9 +44,16 @@ async def add(ctx, description: str, duration: float):
 
 @bot.command()
 async def view(ctx, num: int):
-    # Calls your existing get_Hours function
-    output = get_Hours_from_database(num)
-    await ctx.send(output)
+    """Command to fetch hours from the database for a specific number of days."""
+    # Call your get_Hours_from_database function
+    hours_info, total_hours, average_hours = get_Hours_from_database(num)
+
+    # Prepare the output message
+    output_msg = "\n".join(hours_info)
+    output_msg += f"\nTotal hours: {total_hours}\nAverage hours per day: {average_hours}"
+
+    # Send the output message to the Discord channel
+    await ctx.send(f"Hours information for the last {num} days:\n```{output_msg}```")
 
 
 @bot.command()
