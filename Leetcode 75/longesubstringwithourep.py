@@ -4,7 +4,6 @@ class Solution(object):
         r = 0
         setter = set()
         for i in range(len(s)):
-            print(setter)
             while s[i] in setter:
                 setter.remove(s[r])
                 r += 1
