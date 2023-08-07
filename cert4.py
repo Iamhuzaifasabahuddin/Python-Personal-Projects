@@ -62,6 +62,8 @@ def draw_box_plot():
     # Draw box plots (using Seaborn)
     df_box["month_num"] = df_box["date"].dt.month
     df_box = df_box.sort_values("month_num")
+    # or
+    # df_box = df_box.sort_values(by=["date"])
 
     fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(15, 5))
 

@@ -22,7 +22,7 @@ def draw_cat_plot():
                      value_vars=['cholesterol', 'gluc', 'smoke', 'alco', 'active', 'overweight'])
 
     # Group and reformat the data to split it by 'cardio'. Show the counts of each feature.
-    df_cat = df_cat.groupby(["cardio", "variable", "value"], as_index=False).size()
+    df_cat = df_cat.groupby(["cardio", "variable", "value"], as_index=False).size()  # or use count()
 
     # Rename the 'size' column to 'total'
     df_cat.rename(columns={'size': 'total'}, inplace=True)
