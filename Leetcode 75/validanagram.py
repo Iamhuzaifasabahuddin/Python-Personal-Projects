@@ -22,6 +22,7 @@ class Solution(object):
                 tdict[letter] += 1
 
         return sdict == tdict
+    # or use .get("val",0)-1 or + 1 and check for values ==0
 
 
 if __name__ == '__main__':
