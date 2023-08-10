@@ -13,7 +13,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: 3.11  # Use the desired Python version
+          python-version: 3.x  # Use the desired Python version
 
       - name: Install dependencies
         run: |
@@ -22,4 +22,4 @@ jobs:
 
       - name: Run Pylint
         run: |
-          pylint your_python_code_directory_or_file.py
+          pylint Python-projects-1
