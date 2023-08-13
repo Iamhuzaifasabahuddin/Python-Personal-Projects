@@ -26,7 +26,7 @@ def main():
             creds.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
-                'Drive_Credentials.json', SCOPES)
+                r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\Drive_Credentials.json', SCOPES)
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
         with open('token3.json', 'w') as token:
@@ -50,14 +50,14 @@ def main():
             folder_id = response['files'][0]['id']
 
         file_metadata = {
-            "name": "Password.txt",
+            "name": "Passwords.txt",
             "parents": [folder_id]
         }
 
-        file_path = "Passwords.txt"
+        file_path = r"C:\Users\huzai\PycharmProjects\Python-projects-1\NewPasswords.txt"
         media = MediaFileUpload(file_path)
         upload_file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
-        print(f"Uploaded file ID: {upload_file.get('id')}")
+        print(f"Uploaded file ID: {upload_file.get('id')} & name {file_metadata.get('name')}")
 
     except HttpError as error:
         print(f'An error occurred: {error}')

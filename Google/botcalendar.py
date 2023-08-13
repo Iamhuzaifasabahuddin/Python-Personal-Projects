@@ -26,7 +26,7 @@ def main():
             creds.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
-                'Calendar_Credentials.json', SCOPES)
+                r'/Google/Calendar_Credentials.json', SCOPES)
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
         with open('token2.json', 'w') as token:
@@ -71,7 +71,7 @@ def commit_hours(creds, date):
     print(f"Total duration: {total_duration} Hours")
 
     # adding the hours to the database
-    Connection = sqlite3.connect('Timetable.db')
+    Connection = sqlite3.connect('../Timetable.db')
     cursor = Connection.cursor()
     print("\nOpened database successfully\n")
 
@@ -119,7 +119,7 @@ def get_Hours_from_database(Number_of_days: int):
     try:
         today = datetime.date.today()
         when_from = today + datetime.timedelta(days=-int(Number_of_days))  # goes back from the day till today
-        Connection = sqlite3.connect('Timetable.db')
+        Connection = sqlite3.connect('../Timetable.db')
         Cursor = Connection.cursor()
         Cursor.execute(f"SELECT DATE, HOURS FROM hours WHERE DATE between ? AND ?", (when_from, today))
 
@@ -143,7 +143,7 @@ def Search(date):
     Searches for date in the database
     :param date: takes in the date to be searched
     """
-    Connection = sqlite3.connect('Timetable.db')
+    Connection = sqlite3.connect('../Timetable.db')
     Cursor = Connection.cursor()
     Cursor.execute(f"SELECT DATE, HOURS FROM hours WHERE DATE=?", (date,))
 
@@ -162,7 +162,7 @@ def Remove(date):
     Deletes the data for the certain date in the database
     :param date: takes in the date to be deleted
     """
-    Connection = sqlite3.connect('Timetable.db')
+    Connection = sqlite3.connect('../Timetable.db')
     Cursor = Connection.cursor()
     Cursor.execute(f"SELECT DATE, HOURS FROM hours WHERE DATE=?", (date,))
 

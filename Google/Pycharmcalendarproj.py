@@ -19,17 +19,18 @@ def main():
     Prints the start and name of the next 10 events on the user's calendar.
     """
     creds = None
-    if os.path.exists('token2.json'):
-        creds = Credentials.from_authorized_user_file('token2.json', SCOPES)
+    if os.path.exists(r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\token2.json'):
+        creds = Credentials.from_authorized_user_file(
+            r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\token2.json', SCOPES)
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
-                'Calendar_Credentials.json', SCOPES)
+                r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\Calendar_Credentials.json', SCOPES)
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
-        with open('token2.json', 'w') as token:
+        with open(r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\token2.json', 'w') as token:
             token.write(creds.to_json())
     while True:
         operands = ['add', 'view', 'commit', 'search', 'remove', 'get events', 'remove events', 'exit']
@@ -105,7 +106,7 @@ def commit_hours(creds, date):
     print(f"Total duration: {total_duration} Hours")
 
     # adding the hours to the database
-    Connection = sqlite3.connect('Timetable.db')
+    Connection = sqlite3.connect(r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\Timetable.db')
     cursor = Connection.cursor()
     print("\nOpened database successfully\n")
 
@@ -156,7 +157,7 @@ def get_Hours(Number_of_days: int):
     try:
         today = datetime.date.today()
         when_from = today + datetime.timedelta(days=-int(Number_of_days))  # goes back from the day till today
-        Connection = sqlite3.connect('Timetable.db')
+        Connection = sqlite3.connect(r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\Timetable.db')
         Cursor = Connection.cursor()
         Cursor.execute(f"SELECT DATE, HOURS FROM hours WHERE DATE between ? AND ?", (when_from, today))
 
@@ -178,7 +179,7 @@ def Search(date):
     Searches for date in the database
     :param date: takes in the date to be searched
     """
-    Connection = sqlite3.connect('Timetable.db')
+    Connection = sqlite3.connect(r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\Timetable.db')
     Cursor = Connection.cursor()
     Cursor.execute(f"SELECT DATE, HOURS FROM hours WHERE DATE=?", (date,))
 
@@ -197,7 +198,7 @@ def Remove(date):
     Deletes the data for the certain date in the database
     :param date: takes in the date to be deleted
     """
-    Connection = sqlite3.connect('Timetable.db')
+    Connection = sqlite3.connect(r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\Timetable.db')
     Cursor = Connection.cursor()
     Cursor.execute(f"SELECT DATE, HOURS FROM hours WHERE DATE=?", (date,))
 

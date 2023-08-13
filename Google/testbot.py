@@ -1,7 +1,7 @@
 import discord
 import requests
 import json
-from botcalendar import *
+from Google.botcalendar import *
 from discord.ext import commands
 
 intents = discord.Intents.default()
