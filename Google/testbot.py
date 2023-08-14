@@ -55,7 +55,7 @@ async def view(ctx, num: int):
 
 
 @bot.command()
-async def commit(ctx, date: str = None):
+async def commit(ctx, date: str = None):  # type: ignore
     """Command to commit hours to the database for a specific date (optional)."""
     commit_hours(creds, date)
     await ctx.send("Coding hours added to database successfully")
@@ -100,4 +100,6 @@ if __name__ == '__main__':
         with open('token2.json', 'w') as token:
             token.write(creds.to_json())
 
-    bot.run('MTEzNDY3OTQyMzk3OTg5Njk1Ng.GujfpB.ae__8Qmu7fua524uUG8g6FjPvZ0xIVGsi5fqzI')
+    token = json.load(open(r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\DiscordToken.json'))['TOKEN']
+
+    bot.run(token)
