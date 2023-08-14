@@ -18,8 +18,9 @@ def main():
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
-    if os.path.exists('token3.json'):
-        creds = Credentials.from_authorized_user_file('token3.json', SCOPES)
+    if os.path.exists(r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\token3.json'):
+        creds = Credentials.from_authorized_user_file(
+            r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\token3.json', SCOPES)
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
@@ -29,7 +30,7 @@ def main():
                 r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\Drive_Credentials.json', SCOPES)
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
-        with open('token3.json', 'w') as token:
+        with open(r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\token3.json', 'w') as token:
             token.write(creds.to_json())
 
     try:
