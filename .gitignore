@@ -1,5 +1,6 @@
 *.json
 Passwords.txt
+NewPasswords.txt
 master.txt
 *.png
 /.idea/inspectionProfiles/profiles_settings.xml
@@ -8,4 +9,3 @@ master.txt
 /.idea/Python-projects-1.iml
 /.idea/vcs.xml
 /.idea/workspace.xml
-NewPasswords.txt
