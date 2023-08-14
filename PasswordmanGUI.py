@@ -17,7 +17,7 @@ def add(account, password, message_label, add_acc_entry, add_pwd_entry, toggle_a
         add_acc_entry.delete(0, tk.END)
         add_pwd_entry.delete(0, tk.END)
 
-        toggle_add_fields(None)
+        toggle_add_fields()
 
         message_label.config(text="Account added successfully!", fg="green")
         message_label.pack()
@@ -81,7 +81,7 @@ def gui():
                                                      add_message_label, add_acc_entry, add_pwd_entry, toggle_add_fields,
                                                      window))
 
-    def toggle_add_fields(event):
+    def toggle_add_fields():
             add_acc_label.pack_forget()
             add_acc_entry.pack_forget()
             add_pwd_label.pack_forget()
