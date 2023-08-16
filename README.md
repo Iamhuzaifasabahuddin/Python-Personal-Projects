@@ -7,7 +7,7 @@
 <a href="https://twitter.com/huzaifasabah" target="_blank">
 <img src=https://img.shields.io/badge/twitter-%2300acee.svg?&style=for-the-badge&logo=twitter&logoColor=white alt=twitter style="margin-bottom: 5px;" />
 </a>
-<a href="https://linkedin.com/in/Huzaifa-Sabah-Uddin" target="_blank">
+<a href="https://linkedin.com/in/https://www.linkedin.com/in/huzaifa-sabah-uddin" target="_blank">
 <img src=https://img.shields.io/badge/linkedin-%231E77B5.svg?&style=for-the-badge&logo=linkedin&logoColor=white alt=linkedin style="margin-bottom: 5px;" />
 </a>
 <a href="https://instagram.com/iamhuzaifasabahuddin" target="_blank">
@@ -17,7 +17,7 @@
 
 
 
-### A LITTLE ABOUT ME  
+### *A little about myself!*
 👋🏼 Hey there! I'm a second-year student at the University of Leicester with a passion for coding that started early on. Python has been my trusty companion throughout my coding journey, and I'm constantly exploring new horizons in the world of programming. Currently, I'm focused on advancing my skills in Python and its powerful frameworks like Pandas, NumPy, and Matplotlib. As a dedicated individual, I'm driven to excel in the industry and aspire to inspire others along the way. Let's connect and code the future together! 💻🚀  
   
 
@@ -32,10 +32,6 @@
 </div>  
 
 <img src="https://github-readme-stats.vercel.app/api?username=Iamhuzaifasabahuddin&show_icons=true&count_private=true&hide_border=true" align="left" />  
+
 ![Profile views counter](https://komarev.com/ghpvc/?username=Iamhuzaifasabahuddin&&style=flat-square)  
   
-
-<br/>  
-
-
-
