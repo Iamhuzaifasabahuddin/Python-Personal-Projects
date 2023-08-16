@@ -17,7 +17,7 @@
 
 
 
-### Glad to see you here!  
+### A LITTLE ABOUT ME  
 👋🏼 Hey there! I'm a second-year student at the University of Leicester with a passion for coding that started early on. Python has been my trusty companion throughout my coding journey, and I'm constantly exploring new horizons in the world of programming. Currently, I'm focused on advancing my skills in Python and its powerful frameworks like Pandas, NumPy, and Matplotlib. As a dedicated individual, I'm driven to excel in the industry and aspire to inspire others along the way. Let's connect and code the future together! 💻🚀  
   
 
@@ -32,9 +32,6 @@
 </div>  
 
 <img src="https://github-readme-stats.vercel.app/api?username=Iamhuzaifasabahuddin&show_icons=true&count_private=true&hide_border=true" align="left" />  
-
-![Listening to on Spotify](https://spotify-github-profile.vercel.app/api/view?uid=6wcie8qlp233y7p37b5bfed5v&cover_image=false&theme=default&show_offline=false&background_color=121212&interchange=true&bar_color_cover=true)  
-
 ![Profile views counter](https://komarev.com/ghpvc/?username=Iamhuzaifasabahuddin&&style=flat-square)  
   
 
