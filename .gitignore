@@ -3,6 +3,8 @@ Passwords.txt
 NewPasswords.txt
 master.txt
 *.png
+Passwords.db
+
 /.idea/inspectionProfiles/profiles_settings.xml
 /.idea/inspectionProfiles/Project_Default.xml
 /.idea/.gitignore
