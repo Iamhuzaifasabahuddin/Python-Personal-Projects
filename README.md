@@ -1,19 +1,37 @@
-# PROJECTS
-# 💫 About Me:
-Second-Year student at the University of Leicester 👨🏼‍🎓<br>Pythonista 🐍
+## *HEY THERE 👋🏼, HUZAIFA HERE 🤜🏼🤛🏼*  
+  
+
+<a href="https://github.com/Iamhuzaifasabahuddin" target="_blank">
+<img src=https://img.shields.io/badge/github-%2324292e.svg?&style=for-the-badge&logo=github&logoColor=white alt=github style="margin-bottom: 5px;" />
+</a>
+<a href="https://twitter.com/huzaifasabah" target="_blank">
+<img src=https://img.shields.io/badge/twitter-%2300acee.svg?&style=for-the-badge&logo=twitter&logoColor=white alt=twitter style="margin-bottom: 5px;" />
+</a>
+<a href="https://linkedin.com/in/https://www.linkedin.com/in/huzaifa-sabah-uddin" target="_blank">
+<img src=https://img.shields.io/badge/linkedin-%231E77B5.svg?&style=for-the-badge&logo=linkedin&logoColor=white alt=linkedin style="margin-bottom: 5px;" />
+</a>
+<a href="https://instagram.com/iamhuzaifasabahuddin" target="_blank">
+<img src=https://img.shields.io/badge/instagram-%23000000.svg?&style=for-the-badge&logo=instagram&logoColor=white alt=instagram style="margin-bottom: 5px;" />
+</a>  
+  
 
 
-## 🌐 Socials:
-[![Instagram](https://img.shields.io/badge/Instagram-%23E4405F.svg?logo=Instagram&logoColor=white)](https://instagram.com/Iamhuzaifasabahuddin) [![LinkedIn](https://img.shields.io/badge/LinkedIn-%230077B5.svg?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/huzaifa-sabah-uddin-448555242) [![Twitter](https://img.shields.io/badge/Twitter-%231DA1F2.svg?logo=Twitter&logoColor=white)](https://twitter.com/huzaifasabah?s=21&t=wjrPzN1d2Nqgrwt3aqzl7A) 
 
-# 💻 Tech Stack:
-![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
-# 📊 GitHub Stats:
-![](https://github-readme-stats.vercel.app/api?username=erierintegral77&theme=dark&hide_border=false&include_all_commits=false&count_private=false)<br/>
-![](https://github-readme-streak-stats.herokuapp.com/?user=erierintegral77&theme=dark&hide_border=false)<br/>
-![](https://github-readme-stats.vercel.app/api/top-langs/?username=erierintegral77&theme=dark&hide_border=false&include_all_commits=false&count_private=false&layout=compact)
+### *A little about myself!*
+👋🏼 Hey there! I'm a second-year student at the University of Leicester with a passion for coding that started early on. Python has been my trusty companion throughout my coding journey, and I'm constantly exploring new horizons in the world of programming. Currently, I'm focused on advancing my skills in Python and its powerful frameworks like Pandas, NumPy, and Matplotlib. As a dedicated individual, I'm driven to excel in the industry and aspire to inspire others along the way. Let's connect and code the future together! 💻🚀  
+  
 
+<div align="center">  
+<a href="https://en.wikipedia.org/wiki/HTML5" target="_blank"><img style="margin: 10px" src="https://profilinator.rishav.dev/skills-assets/html5-original-wordmark.svg" alt="HTML5" height="50" /></a>  
+<a href="https://www.java.com/" target="_blank"><img style="margin: 10px" src="https://profilinator.rishav.dev/skills-assets/java-original-wordmark.svg" alt="Java" height="50" /></a>  
+<a href="https://www.mysql.com/" target="_blank"><img style="margin: 10px" src="https://profilinator.rishav.dev/skills-assets/mysql-original-wordmark.svg" alt="MySQL" height="50" /></a>  
+<a href="https://www.linux.org/" target="_blank"><img style="margin: 10px" src="https://profilinator.rishav.dev/skills-assets/linux-original.svg" alt="Linux" height="50" /></a>  
+<a href="https://github.com/" target="_blank"><img style="margin: 10px" src="https://profilinator.rishav.dev/skills-assets/git-scm-icon.svg" alt="Git" height="50" /></a>  
+<a href="https://www.python.org/" target="_blank"><img style="margin: 10px" src="https://profilinator.rishav.dev/skills-assets/python-original.svg" alt="Python" height="50" /></a>  
+<a href="https://www.w3schools.com/css/" target="_blank"><img style="margin: 10px" src="https://profilinator.rishav.dev/skills-assets/css3-original-wordmark.svg" alt="CSS3" height="50" /></a>  
+</div>  
 
----
-[![](https://visitcount.itsvg.in/api?id=erierintegral77&icon=0&color=0)](https://visitcount.itsvg.in)
+<img src="https://github-readme-stats.vercel.app/api?username=Iamhuzaifasabahuddin&show_icons=true&count_private=true&hide_border=true" align="left" />  
 
+![Profile views counter](https://komarev.com/ghpvc/?username=Iamhuzaifasabahuddin&&style=flat-square)  
+  
