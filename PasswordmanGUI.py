@@ -30,8 +30,30 @@ def view():
     return NotImplementedError
 
 
-def edit():
-    return NotImplementedError
+def edit(search, account, username, password, message_label, toggle_edit, window):
+    connection = sqlite3.connect("Passwords.db")
+    cursor = connection.cursor()
+
+    result = cursor.execute("SELECT USERNAME, ACCOUNT, PASSWORD FROM manager WHERE USERNAME=?", (search,))
+
+    existing_data = result.fetchone()
+
+    if not existing_data:
+        message_label.config(text="Account not found")
+        message_label.pack()
+    else:
+        toggle_edit(True)
+        new_account = account.strip() if account.strip() else existing_data[1]
+        new_username = username.strip() if username.strip() else existing_data[0]
+        new_password = password.strip() if password.strip() else existing_data[2]
+
+        cursor.execute("UPDATE manager SET ACCOUNT=?, USERNAME=?, PASSWORD=? WHERE USERNAME=?",
+                       (new_account.title(), new_username.title(), new_password, search))
+        connection.commit()
+        message_label.config(text="Account updated")
+        message_label.pack()
+
+    connection.close()
 
 
 def delete():
@@ -151,8 +173,23 @@ def gui():
     search_button = tk.Button(window, text="Search",
                               command=lambda: exist(search_entry.get(), search_main_label, toggle_search, window))
 
+    edit_label = tk.Label(window, text="Enter account to edit: ")
+    edit_search = tk.Entry(window, font=("oswald", 20))
+    edit_label_user = tk.Label(window, text="Enter account to edit: ")
+    edit_entry_username = tk.Entry(window, font=("oswald", 20))
+    edit_label_acc = tk.Label(window, text="Enter username to edit: ")
+    edit_entry_account = tk.Entry(window, font=("oswald", 20))
+    edit_label_pass = tk.Label(window, text="Enter password user to edit: ")
+    edit_entry_password = tk.Entry(window, font=("oswald", 20), show="*")
+    edit_main_label = tk.Label(window, text="", font=("oswald", 14))
+    edit_button = tk.Button(window, text="Edit",
+                            command=lambda: edit(edit_search.get(), edit_entry_account.get(), edit_entry_username.get(),
+                                                 edit_entry_password.get(), edit_main_label, toggle_edit,
+                                                 window))
+
     def reset():
         Task_box.set(Tasks[0])
+
     # Used to unpack all add fields
     def toggle_add_fields():
         """Unpacks all add fields"""
@@ -164,12 +201,14 @@ def gui():
         Accounts_box.pack_forget()
         add_button.pack_forget()
 
+    # Used to unpack all master fields
     def toggle_master():
         """Unpacks all master"""
         master_entry.pack_forget()
         master_label.pack_forget()
         master_button.pack_forget()
 
+    # Used to unpack all search fields
     def toggle_search(enable):
         if enable:
             search_label.pack()
@@ -179,6 +218,24 @@ def gui():
             search_label.pack_forget()
             search_entry.pack_forget()
             search_button.pack_forget()
+
+    # Used to unpack all edit fields
+    def toggle_edit(enable):
+        if enable:
+            edit_label.pack()
+            edit_label_acc.pack()
+            edit_entry_account.pack()
+            edit_label_user.pack()
+            edit_entry_username.pack()
+            edit_label_pass.pack()
+            edit_entry_password.pack()
+            edit_button.pack()
+        else:
+            edit_label.pack_forget()
+            edit_entry_account.pack_forget()
+            edit_entry_username.pack_forget()
+            edit_entry_password.pack_forget()
+            edit_button.pack_forget()
 
     # Used to get the value from the main combobox
     def get_value(event=None):
@@ -211,7 +268,8 @@ def gui():
             elif selected_value == "delete":
                 delete()
             elif selected_value == "edit":
-                edit()
+                edit_search.pack()
+                toggle_edit(False)
             elif selected_value == "upload":
                 upload()
             else:
@@ -243,6 +301,27 @@ def gui():
     search_entry.bind("<Return>", lambda event: exist(search_entry.get(), search_main_label, toggle_search, window))
     search_button.config(command=lambda: exist(search_entry.get(), search_main_label, toggle_search, window))
 
+    # Edit binding
+    edit_search.bind("<Return>",
+                     lambda event: edit(edit_search.get(), edit_entry_account.get(), edit_entry_username.get(),
+                                        edit_entry_password.get(), edit_main_label, toggle_edit,
+                                        window))
+    edit_entry_account.bind("<Return>",
+                            lambda event: edit(edit_search.get(), edit_entry_account.get(), edit_entry_username.get(),
+                                               edit_entry_password.get(), edit_main_label, toggle_edit,
+                                               window))
+    edit_entry_username.bind("<Return>",
+                             lambda event: edit(edit_search.get(), edit_entry_account.get(), edit_entry_username.get(),
+                                                edit_entry_password.get(), edit_main_label, toggle_edit,
+                                                window))
+    edit_entry_password.bind("<Return>",
+                             lambda event: edit(edit_search.get(), edit_entry_account.get(), edit_entry_username.get(),
+                                                edit_entry_password.get(), edit_main_label, toggle_edit,
+                                                window))
+
+    edit_button.config(command=lambda: edit(edit_search.get(), edit_entry_account.get(), edit_entry_username.get(),
+                                            edit_entry_password.get(), edit_main_label, toggle_edit,
+                                            window))
     window.mainloop()
 
 

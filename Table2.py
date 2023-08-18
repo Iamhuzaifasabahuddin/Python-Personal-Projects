@@ -1,16 +1,17 @@
 import sqlite3
 
-connection = sqlite3.connect('Passwords.db')
 
-cursor = connection.cursor()
-print("Connection established")
+def update_data(username, new_username, new_account, new_password):
+    connection = sqlite3.connect('Passwords.db')
+    cursor = connection.cursor()
 
-# f = connection.execute("SELECT * FROM manager")
-#
-# f = cursor.execute("DELETE FROM manager")
-f1 = cursor.execute("SELECT USERNAME, ACCOUNT, PASSWORD FROM manager WHERE USERNAME=?", ("Facebook",))
+    # query = "UPDATE manager SET USERNAME=?, ACCOUNT=?, PASSWORD=? WHERE USERNAME=?"
+    # cursor.execute(query, (new_username, new_account, new_password, username))
 
-res = f1.fetchall()
-for r in res:
-    print(r[1])
+    connection.commit()
 
+    f = cursor.execute("SELECT * FROM manager")
+    print(f.fetchall())
+
+# Usage example:
+update_data("", "NewUsername", "NewAccount", "NewPassword")
