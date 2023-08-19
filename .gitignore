@@ -1,6 +1,7 @@
 *.json
 Passwords.txt
 NewPasswords.txt
+Passcodeupload.txt
 master.txt
 *.png
 Passwords.db

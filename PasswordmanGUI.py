@@ -1,6 +1,13 @@
 import tkinter as tk
 import tkinter.ttk
 import sqlite3
+import os
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+from googleapiclient.errors import HttpError
 
 
 # main funcs
@@ -39,8 +46,6 @@ def edit(search, account, username, password, message_label, edit_search, toggle
     result = cursor.execute("SELECT USERNAME, ACCOUNT, PASSWORD FROM manager WHERE USERNAME=?", (search,))
 
     existing_data = result.fetchone()
-
-    edit_search.delete(0, tk.END)
     if not existing_data:
         message_label.config(text="Account not found", fg="red")
         message_label.pack()
@@ -89,8 +94,94 @@ def delete(Account, message_label, toggle_delete, window):
     connection.close()
 
 
-def upload():
-    return NotImplementedError
+def upload(Passcode, message_label, upload_entry, toggle_upload, window):
+    with open("Passcodeupload.txt", "r") as file:
+        code = file.readline().strip()
+    if Passcode.strip() == "":
+        message_label.config(text="Passcode Field Cannot Be Empty!", fg="red")
+        message_label.pack()
+        window.after(2000, lambda: message_label.pack_forget())
+    if Passcode.strip() == code:
+        toggle_upload(False)
+        SCOPES = ['https://www.googleapis.com/auth/drive']
+        """Shows basic usage of the Drive v3 API.
+        Prints the names and ids of the first 10 files the user has access to.
+        """
+        creds = None
+        # The file token.json stores the user's access and refresh tokens, and is
+        # created automatically when the authorization flow completes for the first
+        # time.
+        if os.path.exists(r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\token3.json'):
+            creds = Credentials.from_authorized_user_file(
+                r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\token3.json', SCOPES)
+        # If there are no (valid) credentials available, let the user log in.
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\Drive_Credentials.json', SCOPES)
+                creds = flow.run_local_server(port=0)
+            # Save the credentials for the next run
+            with open(r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\token3.json', 'w') as token:
+                token.write(creds.to_json())
+
+        try:
+            service = build('drive', 'v3', credentials=creds)
+
+            response = service.files().list(
+                q="name='Hexzdrivefolder' and mimeType='application/vnd.google-apps.folder'",
+                spaces='drive').execute()
+
+            if not response['files']:
+                file_metadata = {
+                    "name": "Hexzdrivefolder",
+                    "mimeType": "application/vnd.google-apps.folder",
+                }
+
+                file = service.files().create(body=file_metadata, fields="id").execute()
+                folder_id = file.get('id')
+            else:
+                folder_id = response['files'][0]['id']
+
+            file_metadata = {
+                "name": "MyPasswords.db",
+                "parents": [folder_id]
+            }
+
+            file_path = r"C:\Users\huzai\PycharmProjects\Python-projects-1\Passwords.db"
+            # Search for the existing file in Google Drive
+            existing_file = service.files().list(
+                q=f"name='MyPasswords.db' and parents='{folder_id}'",
+                spaces='drive').execute()
+
+            if existing_file['files']:
+                existing_file_id = existing_file['files'][0]['id']
+
+                media = MediaFileUpload(file_path, resumable=True)
+                update_file = service.files().update(fileId=existing_file_id, media_body=media).execute()
+
+                print(f"Updated file ID: {update_file.get('id')} & name {file_metadata.get('name')}")
+                message_label.config(text="File Updated Successfully", fg="green")
+                message_label.pack()
+                window.after(2000, lambda: message_label.pack_forget())
+            else:
+                media = MediaFileUpload(file_path)
+                upload_file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+                print(f"Uploaded file ID: {upload_file.get('id')} & name {file_metadata.get('name')}")
+                message_label.config(text="File Uploaded To Google Drive", fg="green")
+                message_label.pack()
+                window.after(2000, lambda: message_label.pack_forget())
+        except HttpError as error:
+            print(f'An error occurred: {error}')
+            message_label.config(text="An error occurred during upload", fg="red")
+            message_label.pack()
+            window.after(2000, lambda: message_label.pack_forget())
+    else:
+        message_label.config(text="Invalid Passcode!", fg="red")
+        message_label.pack()
+        upload_entry.delete(0, tk.END)
+        window.after(2000, lambda: message_label.pack_forget())
 
 
 def exist(username, message_label, toggle_search, window):
@@ -227,6 +318,12 @@ def gui():
     delete_Button = tk.Button(window, text="Delete", command=lambda: delete(delete_entry.get(), delete_main_label,
                                                                             toggle_delete, window))
 
+    upload_label = tk.Label(window, text="Enter Upload Passcode: ", )
+    upload_entry = tk.Entry(window, font=("oswald", 20), show="*")
+    upload_main_label = tk.Label(window, text="", font=("oswald", 14))
+    upload_button = tk.Button(window, text="Upload", command=lambda: upload(upload_entry.get(), upload_main_label,
+                                                                            upload_entry, toggle_upload, window))
+
     def reset():
         Task_box.set(Tasks[0])
 
@@ -306,6 +403,18 @@ def gui():
             delete_entry.pack_forget()
             delete_Button.pack_forget()
 
+    # Used to pack and unpack all upload fields
+    def toggle_upload(enable):
+        """Packs and unpacks all upload fields"""
+        if enable:
+            upload_label.pack()
+            upload_entry.pack()
+            upload_button.pack()
+        else:
+            upload_label.pack_forget()
+            upload_entry.pack_forget()
+            upload_button.pack_forget()
+
     # Used to get the value from the main combobox
     def get_value(event=None):
         """Return the value from the combobox"""
@@ -346,12 +455,13 @@ def gui():
             toggle_master()
             toggle_add_fields(False)
         elif selected_value == "upload":
+            toggle_upload(True)
             toggle_search(False)
             toggle_delete(False)
             toggle_edit(False)
             toggle_master()
             toggle_add_fields(False)
-            upload()
+
         else:
             return "Select a value from the dropdown list"
 
@@ -401,6 +511,11 @@ def gui():
     delete_entry.bind("<Return>", lambda event: delete(delete_entry.get(), delete_main_label, toggle_delete, window))
     delete_Button.config(command=lambda: delete(delete_entry.get(), delete_main_label, toggle_delete, window))
 
+    # Upload Bindings
+    upload_entry.bind("<Return>",
+                      lambda event: upload(upload_entry.get(), upload_main_label, upload_entry, toggle_upload, window))
+    upload_button.config(
+        command=lambda: upload(upload_entry.get(), upload_main_label, upload_entry, toggle_upload, window))
     window.mainloop()
 
 
