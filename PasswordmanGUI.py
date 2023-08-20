@@ -1,13 +1,19 @@
+import datetime
 import tkinter as tk
 import tkinter.ttk
 import sqlite3
 import os
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
-from googleapiclient.errors import HttpError
+import logging
+
+from google.auth.transport.requests import Request  # type: ignore
+from google.oauth2.credentials import Credentials   # type: ignore
+from google_auth_oauthlib.flow import InstalledAppFlow  # type: ignore
+from googleapiclient.discovery import build  # type: ignore
+from googleapiclient.http import MediaFileUpload  # type: ignore
+from googleapiclient.errors import HttpError  # type: ignore
+
+current_datetime = datetime.datetime.now()
+formatted_datetime = current_datetime.strftime("%Y-%m-%d %H:%M:%S")
 
 
 # main funcs
@@ -28,6 +34,7 @@ def add(username, account, password, message_label, toggle_add_fields, window):
         message_label.config(text="Account added successfully!", fg="green")
         message_label.pack()
         window.after(2000, lambda: message_label.pack_forget())
+    logging.info(f"Used Add Feature")
 
 
 def view():
@@ -65,6 +72,7 @@ def edit(search, account, username, password, message_label, edit_search, toggle
         window.after(2000, lambda: message_label.pack_forget())
 
     connection.close()
+    logging.info(f"Used Edit Feature")
 
 
 def delete(Account, message_label, toggle_delete, window):
@@ -92,6 +100,7 @@ def delete(Account, message_label, toggle_delete, window):
         window.after(2000, lambda: message_label.pack_forget())  # Hide the message after 2000ms
 
     connection.close()
+    logging.info(f"Used Delete Feature At {formatted_datetime}")
 
 
 def upload(Passcode, message_label, upload_entry, toggle_upload, window):
@@ -161,14 +170,14 @@ def upload(Passcode, message_label, upload_entry, toggle_upload, window):
                 media = MediaFileUpload(file_path, resumable=True)
                 update_file = service.files().update(fileId=existing_file_id, media_body=media).execute()
 
-                print(f"Updated file ID: {update_file.get('id')} & name {file_metadata.get('name')}")
+                print(f"Updated file Name {file_metadata.get('name')} at {formatted_datetime}")
                 message_label.config(text="File Updated Successfully", fg="green")
                 message_label.pack()
                 window.after(2000, lambda: message_label.pack_forget())
             else:
                 media = MediaFileUpload(file_path)
-                upload_file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
-                print(f"Uploaded file ID: {upload_file.get('id')} & name {file_metadata.get('name')}")
+                upload_file = service.files().create(body=file_metadata, media_body=media).execute()
+                print(f"Uploaded file Name: {file_metadata.get('name')} at {formatted_datetime}")
                 message_label.config(text="File Uploaded To Google Drive", fg="green")
                 message_label.pack()
                 window.after(2000, lambda: message_label.pack_forget())
@@ -182,6 +191,7 @@ def upload(Passcode, message_label, upload_entry, toggle_upload, window):
         message_label.pack()
         upload_entry.delete(0, tk.END)
         window.after(2000, lambda: message_label.pack_forget())
+    logging.info(f"Used Upload Feature")
 
 
 def exist(username, message_label, toggle_search, window):
@@ -205,6 +215,7 @@ def exist(username, message_label, toggle_search, window):
             message_label.pack()
             toggle_search(False)
             window.after(2000, lambda: message_label.pack_forget())
+        logging.info(f"Used Search Feature")
 
 
 def master(password, message_label, master_entry, option, toggle_master, toggle_search, window):
@@ -347,6 +358,9 @@ def gui():
             add_user_label.pack_forget()  # Hide the label for adding a new account
             Accounts_box.pack_forget()
             add_button.pack_forget()
+            add_acc_entry.delete(0, tk.END)
+            add_pwd_entry.delete(0, tk.END)
+            Accounts_box.set(Accounts[0])
 
     # Used to unpack all master fields
     def toggle_master():
@@ -366,6 +380,7 @@ def gui():
             search_label.pack_forget()
             search_entry.pack_forget()
             search_button.pack_forget()
+            search_entry.delete(0, tk.END)
 
     # Used to unpack all edit fields
     def toggle_edit(enable):
@@ -390,6 +405,9 @@ def gui():
             edit_entry_username.pack_forget()
             edit_entry_password.pack_forget()
             edit_button.pack_forget()
+            edit_entry_account.delete(0, tk.END)
+            edit_entry_username.delete(0, tk.END)
+            edit_entry_password.delete(0, tk.END)
 
     # Used to unpack all delete fields
     def toggle_delete(enable):
@@ -402,6 +420,7 @@ def gui():
             delete_entry_label.pack_forget()
             delete_entry.pack_forget()
             delete_Button.pack_forget()
+            delete_entry.delete(0, tk.END)
 
     # Used to pack and unpack all upload fields
     def toggle_upload(enable):
@@ -414,6 +433,7 @@ def gui():
             upload_label.pack_forget()
             upload_entry.pack_forget()
             upload_button.pack_forget()
+            upload_entry.delete(0, tk.END)
 
     # Used to get the value from the main combobox
     def get_value(event=None):
@@ -429,12 +449,14 @@ def gui():
             toggle_delete(False)
             toggle_search(False)
             toggle_master()
+            reset()
         elif selected_value == "view":
             toggle_search(False)
             toggle_delete(False)
             toggle_edit(False)
             toggle_add_fields(False)
             view()
+            reset()
         elif selected_value == "search":
             master_label.pack()
             master_entry.pack()
@@ -448,12 +470,14 @@ def gui():
             toggle_edit(False)
             toggle_add_fields(False)
             toggle_master()
+            reset()
         elif selected_value == "edit":
             toggle_edit(True)
             toggle_search(False)
             toggle_delete(False)
             toggle_master()
             toggle_add_fields(False)
+            reset()
         elif selected_value == "upload":
             toggle_upload(True)
             toggle_search(False)
@@ -461,6 +485,7 @@ def gui():
             toggle_edit(False)
             toggle_master()
             toggle_add_fields(False)
+            reset()
 
         else:
             return "Select a value from the dropdown list"
@@ -520,4 +545,25 @@ def gui():
 
 
 if __name__ == '__main__':
+    # Configure logging to write to a file and print to the console
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s - %(levelname)s - %(message)s')
+
+    # Create a file handler
+    file_handler = logging.FileHandler('password_manager.log')
+    file_handler.setLevel(logging.INFO)
+
+    # Create a console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+
+    # Create a formatter and attach it to the handlers
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(formatter)
+    console_handler.setFormatter(formatter)
+
+    # Get the root logger and add the handlers
+    logger = logging.getLogger('')
+    logger.addHandler(file_handler)
+
     gui()
