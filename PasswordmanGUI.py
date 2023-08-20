@@ -281,8 +281,8 @@ def gui():
     Accounts_box.bind('<<ComboboxSelected>>', selected_account)
 
     # Add Function Fields
-    add_user_label = tk.Label(window, text="Add service account to add: ")
-    add_acc_label = tk.Label(window, text="Enter your account: ")
+    add_user_label = tk.Label(window, text="Select account to add: ")
+    add_acc_label = tk.Label(window, text="Enter your account/Username: ")
     add_pwd_label = tk.Label(window, text="Enter your password: ")
     add_acc_entry = tk.Entry(window, font=("oswald", 20))
     add_pwd_entry = tk.Entry(window, font=("oswald", 20), show="*")
