@@ -170,14 +170,14 @@ def upload(Passcode, message_label, upload_entry, toggle_upload, window):
                 media = MediaFileUpload(file_path, resumable=True)
                 update_file = service.files().update(fileId=existing_file_id, media_body=media).execute()
 
-                print(f"Updated file Name {file_metadata.get('name')} at {formatted_datetime}")
+                print(f"Updated file Name {update_file.get('name')} at {formatted_datetime}")
                 message_label.config(text="File Updated Successfully", fg="green")
                 message_label.pack()
                 window.after(2000, lambda: message_label.pack_forget())
             else:
                 media = MediaFileUpload(file_path)
                 upload_file = service.files().create(body=file_metadata, media_body=media).execute()
-                print(f"Uploaded file Name: {file_metadata.get('name')} at {formatted_datetime}")
+                print(f"Uploaded file Name: {upload_file.get('name')} at {formatted_datetime}")
                 message_label.config(text="File Uploaded To Google Drive", fg="green")
                 message_label.pack()
                 window.after(2000, lambda: message_label.pack_forget())
