@@ -188,12 +188,12 @@ def upload(message_label, toggle_upload):
             media = MediaFileUpload(file_path, resumable=True)
             update_file = service.files().update(fileId=existing_file_id, media_body=media).execute()
 
-            logging.info(f"Updated file Name {update_file.get('name')}")
+            logging.info(f"Updated file: {update_file.get('name')}")
             show_message(message_label, "File Updated Successfully", "green")
         else:
             media = MediaFileUpload(file_path)
             upload_file = service.files().create(body=file_metadata, media_body=media).execute()
-            logging.info(f"Uploaded file Name: {upload_file.get('name')}")
+            logging.info(f"Uploaded file: {upload_file.get('name')}")
             show_message(message_label, "File Uploaded To Google Drive", "green")
     except HttpError as error:
         logging.info(f'An error occurred: {error}')
@@ -575,6 +575,6 @@ def gui():
 if __name__ == '__main__':
     # Configure logging to write to a file and print to the console
     logging.basicConfig(filename="password_manager.log", level=logging.INFO,
-                        format='%(message)s - %(asctime)s - %(levelname)s ')
+                        format='%(message)s - %(asctime)s - %(levelname)s ', datefmt='%Y-%m-%d %H:%M:%S')
 
     gui()
