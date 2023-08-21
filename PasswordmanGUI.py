@@ -6,46 +6,73 @@ import os
 import logging
 
 from google.auth.transport.requests import Request  # type: ignore
-from google.oauth2.credentials import Credentials   # type: ignore
+from google.oauth2.credentials import Credentials  # type: ignore
 from google_auth_oauthlib.flow import InstalledAppFlow  # type: ignore
 from googleapiclient.discovery import build  # type: ignore
 from googleapiclient.http import MediaFileUpload  # type: ignore
 from googleapiclient.errors import HttpError  # type: ignore
 
-current_datetime = datetime.datetime.now()
-formatted_datetime = current_datetime.strftime("%Y-%m-%d %H:%M:%S")
-
 
 # main funcs
-def add(username, account, password, message_label, toggle_add_fields, window):
+def show_message(message_label, text, color, duration=2000):
+    """
+       Display a message on the GUI.
+
+       Args:
+           message_label (tk.Label): The label widget to display the message.
+           text (str): The message text.
+           color (str): The color of the message text.
+           duration (int, optional): Duration in milliseconds to display the message. Default is 2000ms.
+       """
+    message_label.config(text=text, fg=color)
+    message_label.pack()
+    message_label.after(duration, lambda: message_label.pack_forget())
+    logging.info(text)
+
+
+def add(username, account, password, message_label, toggle_add_fields):
+    """
+       Add an account to the database.
+
+       Args:
+           username (function): Function to get the selected account value.
+           account (str): Account name.
+           password (str): Account password.
+           message_label (tk.Label): The label to display messages.
+           toggle_add_fields (function): Function to toggle add fields visibility.
+       """
     selected_account_value = username()
     if selected_account_value.strip() == "" or account.strip() == "" or password.strip() == "":
-        message_label.config(text="Username or Account or Password cannot be empty", fg="red")
-        message_label.pack()
+        show_message(message_label, "Username or Account or Password cannot be empty", "red")
     else:
         connection = sqlite3.connect('Passwords.db')
         cursor = connection.cursor()
         cursor.execute("INSERT INTO manager VALUES(?, ?, ?)", (selected_account_value.title(),
                                                                account.title(), password))
         connection.commit()
-
         toggle_add_fields(False)
-
-        message_label.config(text="Account added successfully!", fg="green")
-        message_label.pack()
-        window.after(2000, lambda: message_label.pack_forget())
-    logging.info(f"Used Add Feature")
+        show_message(message_label, "Account added successfully!", "green")
 
 
 def view():
     return NotImplementedError
 
 
-def edit(search, account, username, password, message_label, edit_search, toggle_edit, window):
+def edit(search, account, username, password, message_label, edit_search, toggle_edit):
+    """
+       Edit an existing account's details.
+
+       Args:
+           search (str): Account username to search for.
+           account (str): New account name.
+           username (str): New username.
+           password (str): New password.
+           message_label (tk.Label): The label to display messages.
+           edit_search (tk.Entry): The entry widget for searching.
+           toggle_edit (function): Function to toggle edit fields visibility.
+       """
     if search.strip() == "" or account.strip() == "" or username.strip() == "" or password.strip() == "":
-        message_label.config(text="Fields Cannot Be Empty", fg="red")
-        message_label.pack()
-        window.after(2000, lambda: message_label.pack_forget())
+        show_message(message_label, "Fields Cannot Be Empty", "red")
         return
     connection = sqlite3.connect("Passwords.db")
     cursor = connection.cursor()
@@ -54,10 +81,8 @@ def edit(search, account, username, password, message_label, edit_search, toggle
 
     existing_data = result.fetchone()
     if not existing_data:
-        message_label.config(text="Account not found", fg="red")
-        message_label.pack()
+        show_message(message_label, "Account not found", "red")
         edit_search.delete(0, tk.END)
-        window.after(2000, lambda: message_label.pack_forget())
     else:
         new_account = account.strip() if account.strip() else existing_data[1]
         new_username = username.strip() if username.strip() else existing_data[0]
@@ -66,20 +91,14 @@ def edit(search, account, username, password, message_label, edit_search, toggle
         cursor.execute("UPDATE manager SET ACCOUNT=?, USERNAME=?, PASSWORD=? WHERE USERNAME=?",
                        (new_account.title(), new_username.title(), new_password, search))
         connection.commit()
-        message_label.config(text="Account updated", fg="green")
-        message_label.pack()
+        show_message(message_label, "Account updated", "green")
         toggle_edit(False)
-        window.after(2000, lambda: message_label.pack_forget())
-
     connection.close()
-    logging.info(f"Used Edit Feature")
 
 
-def delete(Account, message_label, toggle_delete, window):
+def delete(Account, message_label, toggle_delete):
     if Account.strip() == "":
-        message_label.config(text="Please Enter An Account", fg="red")
-        message_label.pack()
-        window.after(2000, lambda: message_label.pack_forget())  # Hide the message after 2000ms
+        show_message(message_label, "Please Enter An Account", "red")
         return  # Return to prevent further execution of the function
 
     connection = sqlite3.connect('Passwords.db')
@@ -88,28 +107,34 @@ def delete(Account, message_label, toggle_delete, window):
     results = results.fetchall()
 
     if not results:
-        message_label.config(text="Account does not exist!", fg="red")
-        message_label.pack()
-        window.after(2000, lambda: message_label.pack_forget())  # Hide the message after 2000ms
+        show_message(message_label, "Account does not exist!", "red")
+
     else:
         cursor.execute("DELETE FROM manager WHERE USERNAME=?", (Account.strip().title(),))
         connection.commit()
         toggle_delete(False)
-        message_label.config(text="Account deleted", fg="green")
-        message_label.pack()
-        window.after(2000, lambda: message_label.pack_forget())  # Hide the message after 2000ms
-
+        show_message(message_label, "Account deleted", "green")
     connection.close()
-    logging.info(f"Used Delete Feature At {formatted_datetime}")
 
 
-def upload(Passcode, message_label, upload_entry, toggle_upload, window):
+def upload(Passcode, message_label, upload_entry, toggle_upload):
+    """
+        Upload the database file to Google Drive.
+
+        This function uploads the database file to a designated folder in Google Drive
+        after validating a provided passcode.
+
+        Args:
+            Passcode (str): The passcode for validation before proceeding with the upload.
+            message_label (tk.Label): The label widget to display messages.
+            upload_entry (tk.Entry): The entry widget containing the passcode.
+            toggle_upload (function): Function to toggle upload fields visibility.
+    """
     with open("Passcodeupload.txt", "r") as file:
         code = file.readline().strip()
     if Passcode.strip() == "":
-        message_label.config(text="Passcode Field Cannot Be Empty!", fg="red")
-        message_label.pack()
-        window.after(2000, lambda: message_label.pack_forget())
+        show_message(message_label, "Passcode Field Cannot Be Empty!", "red")
+
     if Passcode.strip() == code:
         toggle_upload(False)
         SCOPES = ['https://www.googleapis.com/auth/drive']
@@ -170,88 +195,101 @@ def upload(Passcode, message_label, upload_entry, toggle_upload, window):
                 media = MediaFileUpload(file_path, resumable=True)
                 update_file = service.files().update(fileId=existing_file_id, media_body=media).execute()
 
-                print(f"Updated file Name {update_file.get('name')} at {formatted_datetime}")
-                message_label.config(text="File Updated Successfully", fg="green")
-                message_label.pack()
-                window.after(2000, lambda: message_label.pack_forget())
+                logging.info(f"Updated file Name {update_file.get('name')}")
+                show_message(message_label, "File Updated Successfully", "green")
             else:
                 media = MediaFileUpload(file_path)
                 upload_file = service.files().create(body=file_metadata, media_body=media).execute()
-                print(f"Uploaded file Name: {upload_file.get('name')} at {formatted_datetime}")
-                message_label.config(text="File Uploaded To Google Drive", fg="green")
-                message_label.pack()
-                window.after(2000, lambda: message_label.pack_forget())
+                logging.info(f"Uploaded file Name: {upload_file.get('name')}")
+                show_message(message_label, "File Uploaded To Google Drive", "green")
         except HttpError as error:
-            print(f'An error occurred: {error}')
-            message_label.config(text="An error occurred during upload", fg="red")
-            message_label.pack()
-            window.after(2000, lambda: message_label.pack_forget())
+            logging.info(f'An error occurred: {error}')
+            show_message(message_label, "An error occurred during upload", "red")
     else:
-        message_label.config(text="Invalid Passcode!", fg="red")
-        message_label.pack()
+        show_message(message_label, "Invalid Passcode!", "red")
         upload_entry.delete(0, tk.END)
-        window.after(2000, lambda: message_label.pack_forget())
-    logging.info(f"Used Upload Feature")
 
 
-def exist(username, message_label, toggle_search, window):
+def exist(username, message_label, toggle_search):
+    """
+        Check if an account exists in the database.
+
+        This function queries the database to determine if the provided account username exists.
+        It displays the account details if found, or a message if the account does not exist.
+
+        Args:
+            username (str): The account username to search for.
+            message_label (tk.Label): The label widget to display messages.
+            toggle_search (function): Function to toggle search fields visibility.
+    """
     if username.strip() == "":
-        message_label.config(text="Please enter an account! ", fg="red")
-        message_label.pack()
-        window.after(2000, lambda: message_label.pack_forget())
+        show_message(message_label, "Please enter an account! ", "red")
     else:
         connection = sqlite3.connect("Passwords.db")
         cursor = connection.cursor()
         res = cursor.execute("SELECT USERNAME, ACCOUNT, PASSWORD FROM manager WHERE USERNAME=?", (username.title(),))
         result = res.fetchall()
         if not result:
-            message_label.config(text="Account doesnt exist", fg="red")
-            message_label.pack()
+            show_message(message_label, "Account doesnt exist", "red")
             toggle_search(False)
-            window.after(2000, lambda: message_label.pack_forget())
         else:
-            message_label.config(text=f"ACCOUNT EXIST \n ACCOUNT: {result[0][0]} \n USERNAME: {result[0][1]} "
-                                      f"\n PASSWORD: {result[0][2]}", fg="green")
-            message_label.pack()
+            show_message(message_label, f"ACCOUNT EXIST \n ACCOUNT: {result[0][0]} \n USERNAME: {result[0][1]} "
+                                        f"\n PASSWORD: {result[0][2]}", "green")
             toggle_search(False)
-            window.after(2000, lambda: message_label.pack_forget())
-        logging.info(f"Used Search Feature")
 
 
-def master(password, message_label, master_entry, option, toggle_master, toggle_search, window):
+def master(password, message_label, master_entry, option, toggle_master, toggle_search):
+    """
+       Validate the master password and perform corresponding actions.
+
+       This function checks if the provided password matches the stored master password.
+       If the password is correct, it performs actions based on the selected option, such as
+       toggling search fields for account existence checking.
+
+       Args:
+           password (str): The password input provided by the user.
+           message_label (tk.Label): The label widget to display messages.
+           master_entry (tk.Entry): The entry widget for master password input.
+           option (str): The selected option ("search" or "view") for performing actions.
+           toggle_master (function): Function to toggle master fields visibility.
+           toggle_search (function): Function to toggle search fields visibility.
+    """
     with open("master.txt", "r") as file:
         master_password = file.readline().strip()
     if password.strip() == "":
-        message_label.config(text="Please enter your password!", fg="red")
-        message_label.pack()
-        window.after(2000, lambda: message_label.pack_forget())
+        show_message(message_label, "Please enter your password!", "red")
     else:
         if password == master_password:
-            message_label.config(text="Authorization successful", fg="green")
-            message_label.pack()
+            show_message(message_label, "Authorization successful", "green")
             master_entry.delete(0, tk.END)
-            toggle_master()
+            toggle_master(False)
             if option == "search":
                 toggle_search(True)
             elif option == "view":
-                raise NotImplementedError
-            window.after(2000, lambda: message_label.pack_forget())
+                show_message(message_label,"Unavailable", "red")
         else:
-            message_label.config(text="Authorization failed", fg="red")
-            message_label.pack()
+            show_message(message_label, "Authorization failed", "red")
             master_entry.delete(0, tk.END)
             toggle_search(False)
-            window.after(2000, lambda: message_label.pack_forget())
 
 
 def gui():
+    """
+        Create and manage the graphical user interface for the password manager.
+
+        This function initializes the main application window and sets up various GUI elements,
+        such as labels, comboboxes, entry fields, and buttons. It handles user interaction,
+        manages the visibility of different sections, and delegates tasks to other functions.
+    """
     window = tk.Tk()
     window.title("Password manager")
     window.geometry("500x500")
+    icon = tk.PhotoImage(file="password.png")
+    window.iconphoto(True, icon)
 
     # Main Label
     main_label = tk.Label(text="Welcome To The Password Manager", font=("Lato", 20))
-    main_label.pack()
+    main_label.pack(pady=5)
 
     # Main taskbox for adding
     Tasks = ["Options", "add", "view", "edit", "delete", "upload", "search"]
@@ -275,65 +313,65 @@ def gui():
             Accounts_box.config(state='normal')  # Allow editing the combobox
         else:
             Accounts_box.config(state='readonly')  # Disable editing
-
         return accounts.get()
 
     Accounts_box.bind('<<ComboboxSelected>>', selected_account)
 
     # Add Function Fields
-    add_user_label = tk.Label(window, text="Add service account to add: ")
-    add_acc_label = tk.Label(window, text="Enter your account: ")
-    add_pwd_label = tk.Label(window, text="Enter your password: ")
+    add_user_label = tk.Label(window, text="Add service account to add: ", font=("oswald", 10))
+    add_acc_label = tk.Label(window, text="Enter your account: ", font=("oswald", 10))
+    add_pwd_label = tk.Label(window, text="Enter your password: ", font=("oswald", 10))
     add_acc_entry = tk.Entry(window, font=("oswald", 20))
     add_pwd_entry = tk.Entry(window, font=("oswald", 20), show="*")
     add_message_label = tk.Label(window, text="", font=("oswald", 14))
     add_button = tk.Button(window, text="Add Account",
                            command=lambda: add(selected_account, add_acc_entry.get(), add_pwd_entry.get(),
-                                               add_message_label, toggle_add_fields, window),
+                                               add_message_label, toggle_add_fields),
                            font=("oswald", 20))
 
     # Master Function Fields
-    master_label = tk.Label(window, text="Enter Master Password: ")
+    master_label = tk.Label(window, text="Enter Master Password: ", font=("oswald", 10))
     master_entry = tk.Entry(window, font=("oswald", 20), show="*")
     master_main_label = tk.Label(window, text="", font=("oswald", 14))
     master_button = tk.Button(window, text="Check",
-                              command=lambda: master(master_entry.get(), master_main_label, master_entry, toggle_master,
-                                                     items,
-                                                     toggle_search, window), font=("oswald", 20))
+                              command=lambda: master(master_entry.get(), master_main_label, master_entry, items.get(),
+                                                     toggle_master,
+
+                                                     toggle_search), font=("oswald", 20))
     # Search Function Fields
-    search_label = tk.Label(window, text="Enter Account To Search: ")
+    search_label = tk.Label(window, text="Enter Account To Search: ", font=("oswald", 10))
     search_entry = tk.Entry(window, font=("oswald", 20))
     search_main_label = tk.Label(window, text="", font=("oswald", 14))
     search_button = tk.Button(window, text="Search",
-                              command=lambda: exist(search_entry.get(), search_main_label, toggle_search, window),
+                              command=lambda: exist(search_entry.get(), search_main_label, toggle_search),
                               font=("oswald", 20))
     # Edit Function Fields
-    edit_label = tk.Label(window, text="Enter Account To Edit: ")
+    edit_label = tk.Label(window, text="Enter Account To Edit: ", font=("oswald", 10))
     edit_search = tk.Entry(window, font=("oswald", 20))
-    edit_label_user = tk.Label(window, text="Enter Updated Account: ")
+    edit_label_user = tk.Label(window, text="Enter Updated Account: ", font=("oswald", 10))
     edit_entry_username = tk.Entry(window, font=("oswald", 20))
-    edit_label_acc = tk.Label(window, text="Enter Updated Username: ")
+    edit_label_acc = tk.Label(window, text="Enter Updated Username: ", font=("oswald", 10))
     edit_entry_account = tk.Entry(window, font=("oswald", 20))
-    edit_label_pass = tk.Label(window, text="Enter Updated Password: ")
+    edit_label_pass = tk.Label(window, text="Enter Updated Password: ", font=("oswald", 10))
     edit_entry_password = tk.Entry(window, font=("oswald", 20), show="*")
     edit_main_label = tk.Label(window, text="", font=("oswald", 14))
     edit_button = tk.Button(window, text="Edit",
                             command=lambda: edit(edit_search.get(), edit_entry_account.get(), edit_entry_username.get(),
                                                  edit_entry_password.get(), edit_main_label, edit_search, toggle_edit,
-                                                 window), font=("oswald", 20))
+                                                 ), font=("oswald", 20))
 
     # Delete Function Fields
     delete_main_label = tk.Label(window, text="", font=("oswald", 14))
-    delete_entry_label = tk.Label(window, text="Enter Account to Be Deleted: ", )
+    delete_entry_label = tk.Label(window, text="Enter Account to Be Deleted: ", font=("oswald", 10))
     delete_entry = tk.Entry(window, font=("oswald", 20))
     delete_Button = tk.Button(window, text="Delete", command=lambda: delete(delete_entry.get(), delete_main_label,
-                                                                            toggle_delete, window))
+                                                                            toggle_delete, ))
 
-    upload_label = tk.Label(window, text="Enter Upload Passcode: ", )
+    upload_label = tk.Label(window, text="Enter Upload Passcode: ", font=("oswald", 10))
     upload_entry = tk.Entry(window, font=("oswald", 20), show="*")
     upload_main_label = tk.Label(window, text="", font=("oswald", 14))
     upload_button = tk.Button(window, text="Upload", command=lambda: upload(upload_entry.get(), upload_main_label,
-                                                                            upload_entry, toggle_upload, window))
+                                                                            upload_entry, toggle_upload))
 
     def reset():
         Task_box.set(Tasks[0])
@@ -342,14 +380,14 @@ def gui():
     def toggle_add_fields(enable):
         """Packs and Unpacks all add fields"""
         if enable:
-            add_user_label.pack()
-            Accounts_box.pack()
-            add_acc_label.pack()
-            add_acc_entry.pack()
-            add_pwd_label.pack()
-            add_pwd_entry.pack()
+            add_user_label.pack(pady=5)
+            Accounts_box.pack(pady=5)
+            add_acc_label.pack(pady=5)
+            add_acc_entry.pack(pady=5)
+            add_pwd_label.pack(pady=5)
+            add_pwd_entry.pack(pady=5)
             selected_account()  # Call the selected_account function to handle the editing of Accounts_box
-            add_button.pack()
+            add_button.pack(pady=10)
         else:
             add_acc_label.pack_forget()
             add_acc_entry.pack_forget()
@@ -363,19 +401,24 @@ def gui():
             Accounts_box.set(Accounts[0])
 
     # Used to unpack all master fields
-    def toggle_master():
-        """Unpacks all master"""
-        master_entry.pack_forget()
-        master_label.pack_forget()
-        master_button.pack_forget()
+    def toggle_master(enable):
+        """Pacs and Unpacks all master"""
+        if enable:
+            master_label.pack(pady=5)
+            master_entry.pack(pady=5)
+            master_button.pack(pady=10)
+        else:
+            master_entry.pack_forget()
+            master_label.pack_forget()
+            master_button.pack_forget()
 
     # Used to unpack all search fields
     def toggle_search(enable):
         """Packs and unpacks all search fields"""
         if enable:
-            search_label.pack()
-            search_entry.pack()
-            search_button.pack()
+            search_label.pack(pady=5)
+            search_entry.pack(pady=5)
+            search_button.pack(pady=10)
         else:
             search_label.pack_forget()
             search_entry.pack_forget()
@@ -386,15 +429,15 @@ def gui():
     def toggle_edit(enable):
         """Packs and unpacks all edit fields"""
         if enable:
-            edit_label.pack()
-            edit_search.pack()
-            edit_label_user.pack()
-            edit_entry_username.pack()
-            edit_label_acc.pack()
-            edit_entry_account.pack()
-            edit_label_pass.pack()
-            edit_entry_password.pack()
-            edit_button.pack()
+            edit_label.pack(pady=5)
+            edit_search.pack(pady=5)
+            edit_label_user.pack(pady=5)
+            edit_entry_username.pack(pady=5)
+            edit_label_acc.pack(pady=5)
+            edit_entry_account.pack(pady=5)
+            edit_label_pass.pack(pady=5)
+            edit_entry_password.pack(pady=5)
+            edit_button.pack(pady=10)
         else:
             edit_label.pack_forget()
             edit_label_acc.pack_forget()
@@ -413,9 +456,9 @@ def gui():
     def toggle_delete(enable):
         """Packs and unpacks all delete fields"""
         if enable:
-            delete_entry_label.pack()
-            delete_entry.pack()
-            delete_Button.pack()
+            delete_entry_label.pack(pady=5)
+            delete_entry.pack(pady=5)
+            delete_Button.pack(pady=10)
         else:
             delete_entry_label.pack_forget()
             delete_entry.pack_forget()
@@ -426,9 +469,9 @@ def gui():
     def toggle_upload(enable):
         """Packs and unpacks all upload fields"""
         if enable:
-            upload_label.pack()
-            upload_entry.pack()
-            upload_button.pack()
+            upload_label.pack(pady=5)
+            upload_entry.pack(pady=5)
+            upload_button.pack(pady=10)
         else:
             upload_label.pack_forget()
             upload_entry.pack_forget()
@@ -448,19 +491,16 @@ def gui():
             toggle_edit(False)
             toggle_delete(False)
             toggle_search(False)
-            toggle_master()
+            toggle_master(False)
             reset()
         elif selected_value == "view":
+            toggle_master(True)
             toggle_search(False)
             toggle_delete(False)
             toggle_edit(False)
             toggle_add_fields(False)
-            view()
-            reset()
         elif selected_value == "search":
-            master_label.pack()
-            master_entry.pack()
-            master_button.pack()
+            toggle_master(True)
             toggle_search(False)
             toggle_delete(False)
             toggle_edit(False)
@@ -469,13 +509,13 @@ def gui():
             toggle_search(False)
             toggle_edit(False)
             toggle_add_fields(False)
-            toggle_master()
+            toggle_master(False)
             reset()
         elif selected_value == "edit":
             toggle_edit(True)
             toggle_search(False)
             toggle_delete(False)
-            toggle_master()
+            toggle_master(False)
             toggle_add_fields(False)
             reset()
         elif selected_value == "upload":
@@ -483,7 +523,7 @@ def gui():
             toggle_search(False)
             toggle_delete(False)
             toggle_edit(False)
-            toggle_master()
+            toggle_master(False)
             toggle_add_fields(False)
             reset()
 
@@ -492,78 +532,44 @@ def gui():
 
     # Main Combobox
     Task_box.bind('<<ComboboxSelected>>', get_value)
-    Task_label.pack()
-    Task_box.pack()
+    Task_label.pack(pady=5)
+    Task_box.pack(pady=5)
 
-    # Add Bindings
-    add_acc_entry.bind("<Return>", lambda event: add(selected_account, add_acc_entry.get(), add_pwd_entry.get(),
-                                                     add_message_label, toggle_add_fields, window))
-    add_pwd_entry.bind("<Return>", lambda event: add(selected_account, add_acc_entry.get(), add_pwd_entry.get(),
-                                                     add_message_label, toggle_add_fields, window))
-    add_button.config(command=lambda: add(selected_account, add_acc_entry.get(), add_pwd_entry.get(),
-                                          add_message_label, toggle_add_fields, window))
-    # Master Bindings
-    master_entry.bind("<Return>", lambda event: master(master_entry.get(), master_main_label, master_entry,
-                                                       items.get(), toggle_master, toggle_search, window))
-    master_button.config(command=lambda: master(master_entry.get(), master_main_label, master_entry,
-                                                items.get(), toggle_master, toggle_search, window))
-    # Search binding
-    search_entry.bind("<Return>", lambda event: exist(search_entry.get(), search_main_label, toggle_search, window))
-    search_button.config(command=lambda: exist(search_entry.get(), search_main_label, toggle_search, window))
+    # Define a dictionary that maps each entry field to its corresponding next field or button
+    entry_mapping = {
+        add_acc_entry: add_pwd_entry,
+        add_pwd_entry: add_button,
+        master_entry: master_button,
+        search_entry: search_button,
+        edit_search: edit_entry_account,
+        edit_entry_account: edit_entry_username,
+        edit_entry_username: edit_entry_password,
+        edit_entry_password: edit_button,
+        delete_entry: delete_Button,
+        upload_entry: upload_button,
+    }
 
-    # Edit binding
-    edit_search.bind("<Return>",
-                     lambda event: edit(edit_search.get(), edit_entry_account.get(), edit_entry_username.get(),
-                                        edit_entry_password.get(), edit_main_label, edit_search, toggle_edit,
-                                        window))
-    edit_entry_account.bind("<Return>",
-                            lambda event: edit(edit_search.get(), edit_entry_account.get(), edit_entry_username.get(),
-                                               edit_entry_password.get(), edit_main_label, edit_search, toggle_edit,
-                                               window))
-    edit_entry_username.bind("<Return>",
-                             lambda event: edit(edit_search.get(), edit_entry_account.get(), edit_entry_username.get(),
-                                                edit_entry_password.get(), edit_main_label, edit_search, toggle_edit,
-                                                window))
-    edit_entry_password.bind("<Return>",
-                             lambda event: edit(edit_search.get(), edit_entry_account.get(), edit_entry_username.get(),
-                                                edit_entry_password.get(), edit_main_label, edit_search, toggle_edit,
-                                                window))
+    # Define a function to handle Enter key press
+    def handle_enter(event):
+        focused_widget = window.focus_get()
+        if focused_widget in entry_mapping:
+            next_widget = entry_mapping[focused_widget]
+            next_widget.focus()
+        elif focused_widget in [add_button, master_button, search_button, edit_button, delete_Button, upload_button]:
+            focused_widget.invoke()  # Simulate a button click
 
-    edit_button.config(command=lambda: edit(edit_search.get(), edit_entry_account.get(), edit_entry_username.get(),
-                                            edit_entry_password.get(), edit_main_label, edit_search, toggle_edit,
-                                            window))
-    # Delete Bindings
-    delete_entry.bind("<Return>", lambda event: delete(delete_entry.get(), delete_main_label, toggle_delete, window))
-    delete_Button.config(command=lambda: delete(delete_entry.get(), delete_main_label, toggle_delete, window))
+    # Bind the <Return> key event to all relevant entry fields and buttons
+    for widget in entry_mapping.keys():
+        widget.bind("<Return>", handle_enter)
+    for button in [add_button, master_button, search_button, edit_button, delete_Button, upload_button]:
+        button.bind("<Return>", handle_enter)
 
-    # Upload Bindings
-    upload_entry.bind("<Return>",
-                      lambda event: upload(upload_entry.get(), upload_main_label, upload_entry, toggle_upload, window))
-    upload_button.config(
-        command=lambda: upload(upload_entry.get(), upload_main_label, upload_entry, toggle_upload, window))
     window.mainloop()
 
 
 if __name__ == '__main__':
     # Configure logging to write to a file and print to the console
-    logging.basicConfig(level=logging.INFO,
-                        format='%(asctime)s - %(levelname)s - %(message)s')
-
-    # Create a file handler
-    file_handler = logging.FileHandler('password_manager.log')
-    file_handler.setLevel(logging.INFO)
-
-    # Create a console handler
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)
-
-    # Create a formatter and attach it to the handlers
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    file_handler.setFormatter(formatter)
-    console_handler.setFormatter(formatter)
-
-    # Get the root logger and add the handlers
-    logger = logging.getLogger('')
-    logger.addHandler(file_handler)
+    logging.basicConfig(filename="password_manager.log", level=logging.INFO,
+                        format='%(message)s - %(asctime)s - %(levelname)s ')
 
     gui()
