@@ -109,7 +109,7 @@ def delete(Account, message_label, toggle_delete):
 
     if not results:
         show_message(message_label, "Account does not exist!", "red")
-
+        toggle_delete(False)
     else:
         cursor.execute("DELETE FROM manager WHERE USERNAME=?", (Account.strip().title(),))
         connection.commit()
@@ -370,7 +370,7 @@ def gui():
     delete_entry_label = tk.Label(window, text="Enter Account to Be Deleted: ", font=("oswald", 10))
     delete_entry = tk.Entry(window, font=("oswald", 20))
     delete_Button = tk.Button(window, text="Delete", command=lambda: delete(delete_entry.get(), delete_main_label,
-                                                                            toggle_delete, ))
+                                                                            toggle_delete), font=("oswald", 20))
 
     # Upload Function Fields
     upload_label = tk.Label(window, text="Enter to Upload: ", font=("oswald", 10))
