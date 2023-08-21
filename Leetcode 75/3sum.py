@@ -20,7 +20,7 @@ class Solution(object):
                 else:
                     result.append([value, nums[left], nums[right]])
                     left += 1
-                    while left < right and left == nums[i - 1]:
+                    while left < right and nums[left] == nums[i - 1]:
                         left = left + 1
                    # reference why do we use a loop is to move forward as 
                    # if to decrement it the previous conditions do that for you.
