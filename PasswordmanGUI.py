@@ -55,8 +55,36 @@ def add(username, account, password, message_label, toggle_add_fields, reset):
         show_message(message_label, "Account added successfully!", "green")
 
 
-def view():
-    return NotImplementedError
+def view(view_listbox, message_label, toggle_view, reset):
+    """
+     Display the list of accounts stored in the database.
+
+     This function retrieves the accounts stored in the database and displays them in a scrollable listbox.
+     If there are no accounts to display, an error message is shown.
+
+     Args:
+         view_listbox (tk.ListBox): The listbox widget to display the accounts.
+         message_label (tk.Label): The label widget to display messages.
+         toggle_view (function): Function to toggle view fields visibility.
+         reset (Function): Function to reset the main combobox.
+     """
+    connection = sqlite3.connect('Passwords.db')
+    cursor = connection.cursor()
+
+    results = cursor.execute("SELECT * FROM manager")
+    results = results.fetchall()
+    if not results:
+        show_message(message_label, "No Accounts To Display", 'red')
+    else:
+        show_message(message_label, "Showing Account / Accounts for 60 Seconds", "green", duration=60000)
+        for index, values in enumerate(results, start=1):
+            view_listbox.insert(tk.END, f"Account {index}\n\n")  # We insert from END due to it adds from where
+            # it left off
+            view_listbox.insert(tk.END, f"ACCOUNT: {values[0]}\nUSERNAME: {values[1]}\nPASSWORD: {values[2]}\n\n")
+        view_listbox.pack()
+        toggle_view(False)
+        reset()
+    connection.close()
 
 
 def edit(search, search_2, account, username, password, message_label, edit_search, toggle_edit, reset):
@@ -102,6 +130,19 @@ def edit(search, search_2, account, username, password, message_label, edit_sear
 
 
 def delete(Account, Username, message_label, toggle_delete, reset):
+    """
+       Delete an account from the database.
+
+       This function deletes an account from the database based on the provided account name and username.
+       If the account exists, it will be deleted; otherwise, an error message will be displayed.
+
+       Args:
+           Account (str): The account name to be deleted.
+           Username (str): The username associated with the account.
+           message_label (tk.Label): The label to display messages.
+           toggle_delete (function): Function to toggle delete fields visibility.
+           reset (Function): Function to reset the main combobox.
+       """
     if Account.strip() == "":
         show_message(message_label, "Please Enter An Account", "red")
         return  # Return to prevent further execution of the function
@@ -139,9 +180,6 @@ def upload(message_label, toggle_upload, reset):
     """
     toggle_upload(False)
     SCOPES = ['https://www.googleapis.com/auth/drive']
-    """Shows basic usage of the Drive v3 API.
-    Prints the names and ids of the first 10 files the user has access to.
-    """
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
@@ -196,13 +234,13 @@ def upload(message_label, toggle_upload, reset):
             media = MediaFileUpload(file_path, resumable=True)
             update_file = service.files().update(fileId=existing_file_id, media_body=media).execute()
 
-            logging.info(f"Updated file: {update_file.get('name')}")
+            logging.info("Updated file: %s", update_file.get('name'))
             reset()
             show_message(message_label, "File Updated Successfully", "green")
         else:
             media = MediaFileUpload(file_path)
-            upload_file = service.files().create(body=file_metadata, media_body=media).execute()
-            logging.info(f"Uploaded file: {upload_file.get('name')}")
+            upload_file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+            logging.info(f"Uploaded file: %s", upload_file.get('name'))
             reset()
             show_message(message_label, "File Uploaded To Google Drive", "green")
     except HttpError as error:
@@ -236,7 +274,7 @@ def exist(username, message_label, toggle_search, search_listbox, reset):
             toggle_search(False)
             show_message(message_label, "Account doesnt exist", "red")
         else:
-            show_message(message_label, "Showing Account / Accounts", "green", duration=60000)
+            show_message(message_label, "Showing Account / Accounts for 60 Seconds", "green", duration=60000)
             for index, values in enumerate(result, start=1):
                 search_listbox.insert(tk.END, f"Account {index}\n\n")  # We insert from END due to it adds from where
                 # it left off
@@ -246,7 +284,8 @@ def exist(username, message_label, toggle_search, search_listbox, reset):
             reset()
 
 
-def master(password, message_label, master_entry, option, toggle_master, toggle_search, toggle_upload, reset):
+def master(password, message_label, master_entry, option, toggle_master, toggle_search, toggle_upload, toggle_view,
+           reset):
     """
        Validate the master password and perform corresponding actions.
 
@@ -262,12 +301,14 @@ def master(password, message_label, master_entry, option, toggle_master, toggle_
            toggle_master (function): Function to toggle master fields visibility.
            toggle_search (function): Function to toggle search fields visibility.
            toggle_upload (function): Function to toggle upload fields visibility.
-           reset (Function): Function to reset the main combobox
+           toggle_view (function): Function to toggle view fields visibility.
+           reset (function): Function to reset the main combobox
     """
     with open("master.txt", "r") as file:
         master_password = file.readline().strip()
     if password.strip() == "":
         show_message(message_label, "Please enter your password!", "red")
+        toggle_master(False)
     else:
         if password == master_password:
             master_entry.delete(0, tk.END)
@@ -277,7 +318,7 @@ def master(password, message_label, master_entry, option, toggle_master, toggle_
                 toggle_search(True)
                 reset()
             elif option == "view":
-                show_message(message_label, "Unavailable", "red")
+                toggle_view(True)
                 reset()
             elif option == "upload":
                 toggle_upload(True)
@@ -357,7 +398,8 @@ def gui():
                               command=lambda: master(master_entry.get(), master_main_label, master_entry, items.get(),
                                                      toggle_master,
 
-                                                     toggle_search, toggle_upload, reset), font=("oswald", 20))
+                                                     toggle_search, toggle_upload, toggle_view, reset),
+                              font=("oswald", 20))
 
     # Search Function Fields
     search_label = tk.Label(window, text="Enter Account To Search: ", font=("oswald", 10))
@@ -399,9 +441,18 @@ def gui():
                                                      toggle_delete, reset), font=("oswald", 20))
 
     # Upload Function Fields
-    upload_label = tk.Label(window, text="Enter to Upload: ", font=("oswald", 10))
+    upload_label = tk.Label(window, text="Click to Upload: ", font=("oswald", 10))
     upload_main_label = tk.Label(window, text="", font=("oswald", 14))
-    upload_button = tk.Button(window, text="Upload", command=lambda: upload(upload_main_label, toggle_upload, reset))
+    upload_button = tk.Button(window, text="Upload", command=lambda: upload(upload_main_label, toggle_upload, reset),
+                              font=("oswald", 20))
+
+    # View Function Fields
+    view_label = tk.Label(window, text="Click To View")
+    view_label_main = tk.Label(window, text="")
+    view_listbox = scrolledtext.ScrolledText(window, wrap=tk.WORD, width=40, height=20, font=("oswald", 14))
+    view_button = tk.Button(window, text="View",
+                            command=lambda: view(view_listbox, view_label_main, toggle_view, reset),
+                            font=("oswald", 20))
 
     def reset():
         """ Resets the main combobox to index 0."""
@@ -450,14 +501,16 @@ def gui():
             search_label.pack(pady=5)
             search_entry.pack(pady=5)
             search_button.pack(pady=10)
+            search_listbox.config(state='normal')
             search_listbox.delete("1.0", tk.END)  # Clear the text in the scrolled text widget
         else:
             search_label.pack_forget()
             search_entry.pack_forget()
             search_button.pack_forget()
             search_entry.delete(0, tk.END)
+            search_listbox.config(state='disabled')
             # Use the after method to display the search_listbox after 10 seconds
-            search_listbox.after(60000, lambda: search_listbox.pack_forget())
+            search_listbox.after(60000, lambda: search_listbox.pack_forget())  # Pylint: disable=W0108
 
     # Used to unpack all edit fields
     def toggle_edit(enable):
@@ -519,6 +572,18 @@ def gui():
             upload_label.pack_forget()
             upload_button.pack_forget()
 
+    def toggle_view(enable):
+        if enable:
+            view_label.pack(pady=5)
+            view_button.pack(pady=5)
+            view_listbox.config(state='normal')
+            view_listbox.delete("1.0", tk.END)
+        else:
+            view_label.pack_forget()
+            view_button.pack_forget()
+            view_listbox.config(state='disabled')
+            view_listbox.after(60000, lambda: view_listbox.pack_forget())
+
     # Used to get the value from the main combobox
     def get_value(event=None):
         """Return the value from the combobox"""
@@ -532,6 +597,7 @@ def gui():
             toggle_delete(False)
             toggle_search(False)
             toggle_master(False)
+            view_listbox.pack_forget()
             search_listbox.pack_forget()
         elif selected_value == "view":
             toggle_master(True)
@@ -539,6 +605,7 @@ def gui():
             toggle_delete(False)
             toggle_edit(False)
             toggle_add_fields(False)
+            toggle_view(False)
             search_listbox.pack_forget()
         elif selected_value == "search":
             toggle_master(True)
@@ -552,6 +619,7 @@ def gui():
             toggle_edit(False)
             toggle_add_fields(False)
             toggle_master(False)
+            view_listbox.pack_forget()
             search_listbox.pack_forget()
         elif selected_value == "edit":
             toggle_edit(True)
@@ -559,6 +627,7 @@ def gui():
             toggle_delete(False)
             toggle_master(False)
             toggle_add_fields(False)
+            view_listbox.pack_forget()
             search_listbox.pack_forget()
         elif selected_value == "upload":
             toggle_search(False)
@@ -566,6 +635,7 @@ def gui():
             toggle_edit(False)
             toggle_master(True)
             toggle_add_fields(False)
+            view_listbox.pack_forget()
             search_listbox.pack_forget()
         else:
             return "Select a value from the dropdown list"
@@ -589,36 +659,52 @@ def gui():
         delete_entry: delete_username_entry,
         delete_username_entry: delete_Button,
         upload_button: upload_button,
+        view_button: view_button
     }
 
     # Define a function to handle Enter key press
-    def handle_enter(event):
+    def handle_enter(event):  # pylint: disable=W0613
         focused_widget = window.focus_get()
-        if focused_widget in entry_mapping:
-            next_widget = entry_mapping[focused_widget]
-            next_widget.focus()
-        elif focused_widget in [add_button, master_button, search_button, edit_button, delete_Button, upload_button]:
-            focused_widget.invoke()  # Simulate a button click
+        for widgets, next_widget in entry_mapping.items():
+            if focused_widget == widgets:
+                next_widget.focus()
+                break
+        for buttons in [add_button, master_button, search_button, edit_button, delete_Button, upload_button,
+                        view_button]:
+            if focused_widget == buttons:
+                buttons.invoke()  # Simulate a button click
 
     # Bind the <Return> key event to all relevant entry fields and buttons
-    for widget in entry_mapping.keys():
+    for widget in entry_mapping:
         widget.bind("<Return>", handle_enter)
-    for button in [add_button, master_button, search_button, edit_button, delete_Button, upload_button]:
+    for button in [add_button, master_button, search_button, edit_button, delete_Button, upload_button, view_button]:
         button.bind("<Return>", handle_enter)
 
     window.mainloop()
 
 
-if __name__ == '__main__':
-    logger = logging.getLogger("HEXZ")
-    file_handler = logging.FileHandler("password_manager.log", 'w')
-    file_handler.setLevel(logging.INFO)
-    file_handler.setFormatter(logging.Formatter('%(funcName)s - %(message)s - %(asctime)s - %(levelname)s',
-                                                datefmt='%Y-%m-%d %H:%M:%S'))
+def logging_function():
+    """Creates a console and file logging handler that logs messages"""
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
+    # Create a file handler
+    file_handler = logging.FileHandler('password_manager.log')
+    file_handler.setLevel(logging.DEBUG)  # Set the desired log level for the file handler
+
+    # Create a console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)  # Set the desired log level for the console handler
+
+    # Create a formatter and attach it to the handlers
+    formatter = logging.Formatter('%(funcName)s - %(message)s - %(asctime)s - %(levelname)s')
+    file_handler.setFormatter(formatter)
+    console_handler.setFormatter(formatter)
+
+    # Get the root logger and add the handlers
+    logger = logging.getLogger('')
     logger.addHandler(file_handler)
 
-    logging.basicConfig(level=logging.INFO,
-                        format='%(funcName)s - %(message)s - %(asctime)s - %(levelname)s ',
-                        datefmt='%Y-%m-%d %H:%M:%S')
 
+if __name__ == '__main__':
+    logging_function()
     gui()
