@@ -236,7 +236,7 @@ def exist(username, message_label, toggle_search, search_listbox, reset):
             toggle_search(False)
             show_message(message_label, "Account doesnt exist", "red")
         else:
-            show_message(message_label, "Showing Account / Accounts", "green")
+            show_message(message_label, "Showing Account / Accounts", "green", duration=60000)
             for index, values in enumerate(result, start=1):
                 search_listbox.insert(tk.END, f"Account {index}\n\n")  # We insert from END due to it adds from where
                 # it left off
@@ -286,7 +286,6 @@ def master(password, message_label, master_entry, option, toggle_master, toggle_
             master_entry.delete(0, tk.END)
             toggle_search(False)
             toggle_upload(False)
-            reset()
             show_message(message_label, "Authorization failed", "red")
 
 
@@ -492,9 +491,6 @@ def gui():
             edit_entry_password.delete(0, tk.END)
             edit_entry_2.delete(0, tk.END)
 
-    def edit_main(enable):
-        if enable:
-            pass
     # Used to unpack all delete fields
     def toggle_delete(enable):
         """Packs and unpacks all delete fields"""
@@ -614,15 +610,15 @@ def gui():
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO,
-                        format='%(funcName)s - %(message)s - %(asctime)s - %(levelname)s ',
-                        datefmt='%Y-%m-%d %H:%M:%S')
-
     logger = logging.getLogger("HEXZ")
     file_handler = logging.FileHandler("password_manager.log", 'w')
     file_handler.setLevel(logging.INFO)
     file_handler.setFormatter(logging.Formatter('%(funcName)s - %(message)s - %(asctime)s - %(levelname)s',
                                                 datefmt='%Y-%m-%d %H:%M:%S'))
     logger.addHandler(file_handler)
+
+    logging.basicConfig(level=logging.INFO,
+                        format='%(funcName)s - %(message)s - %(asctime)s - %(levelname)s ',
+                        datefmt='%Y-%m-%d %H:%M:%S')
 
     gui()
