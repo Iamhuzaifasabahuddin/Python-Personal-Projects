@@ -685,11 +685,11 @@ def gui():
 
 def logging_function():
     """Creates a console and file logging handler that logs messages"""
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(level=logging.DEBUG, format='%(funcName)s - %(message)s - %(asctime)s - %(levelname)s')
 
     # Create a file handler
     file_handler = logging.FileHandler('password_manager.log')
-    file_handler.setLevel(logging.DEBUG)  # Set the desired log level for the file handler
+    file_handler.setLevel(logging.WARNING)  # Set the desired log level for the file handler
 
     # Create a console handler
     console_handler = logging.StreamHandler()
