@@ -691,14 +691,9 @@ def logging_function():
     file_handler = logging.FileHandler('password_manager.log')
     file_handler.setLevel(logging.WARNING)  # Set the desired log level for the file handler
 
-    # Create a console handler
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)  # Set the desired log level for the console handler
-
     # Create a formatter and attach it to the handlers
     formatter = logging.Formatter('%(funcName)s - %(message)s - %(asctime)s - %(levelname)s')
     file_handler.setFormatter(formatter)
-    console_handler.setFormatter(formatter)
 
     # Get the root logger and add the handlers
     logger = logging.getLogger('')
