@@ -3,6 +3,7 @@ from tkinter import ttk, scrolledtext
 import sqlite3
 import os
 import logging
+from typing import Callable
 
 from google.auth.transport.requests import Request  # type: ignore
 from google.oauth2.credentials import Credentials  # type: ignore
@@ -12,8 +13,27 @@ from googleapiclient.http import MediaFileUpload  # type: ignore
 from googleapiclient.errors import HttpError  # type: ignore
 
 
+def search_database(username: str, account: str) -> bool:
+    """Searches account and username in the database for add functionality"""
+    connection = sqlite3.connect("Passwords.db")
+    cursor = connection.cursor()
+
+    if username and account:
+        result = cursor.execute("SELECT USERNAME, ACCOUNT FROM manager WHERE USERNAME=? AND ACCOUNT=?",
+                                (username, account))
+    elif username:
+        result = cursor.execute("SELECT USERNAME, ACCOUNT FROM manager WHERE USERNAME=?", (username,))
+    else:
+        return False  # If neither username nor account is provided, return False
+
+    if result.fetchall():
+        return True  # Account exists
+    else:
+        return False  # Account doesn't exist
+
+
 # main funcs
-def show_message(message_label, text, color, duration=2000):
+def show_message(message_label: tk.Label, text: str, color: str, duration=2000):
     """
        Display a message on the GUI.
 
@@ -29,7 +49,8 @@ def show_message(message_label, text, color, duration=2000):
     logging.info(text)
 
 
-def add(username, account, password, message_label, toggle_add_fields, reset):
+def add(username: Callable, account: str, password: str, message_label: tk.Label, toggle_add_fields: Callable,
+        reset: Callable):
     """
        Add an account to the database.
 
@@ -45,17 +66,20 @@ def add(username, account, password, message_label, toggle_add_fields, reset):
     if selected_account_value.strip() == "" or account.strip() == "" or password.strip() == "":
         show_message(message_label, "Username or Account or Password cannot be empty", "red")
     else:
-        connection = sqlite3.connect('Passwords.db')
-        cursor = connection.cursor()
-        cursor.execute("INSERT INTO manager VALUES(?, ?, ?)", (selected_account_value.title(),
-                                                               account.title(), password))
-        connection.commit()
-        toggle_add_fields(False)
-        reset()
-        show_message(message_label, "Account added successfully!", "green")
+        if not search_database(selected_account_value.title(), account.title()):
+            connection = sqlite3.connect('Passwords.db')
+            cursor = connection.cursor()
+            cursor.execute("INSERT INTO manager VALUES(?, ?, ?)", (selected_account_value.title(),
+                                                                   account.title(), password))
+            connection.commit()
+            toggle_add_fields(False)
+            show_message(message_label, "Account added successfully!", "green")
+        else:
+            show_message(message_label, "Account Already Exists", "red")
+    reset()
 
 
-def view(view_listbox, message_label, toggle_view, reset):
+def view(view_listbox: tk.scrolledtext.ScrolledText, message_label: tk.Label, toggle_view: Callable, reset: Callable):
     """
      Display the list of accounts stored in the database.
 
@@ -87,7 +111,8 @@ def view(view_listbox, message_label, toggle_view, reset):
     connection.close()
 
 
-def edit(search, search_2, account, username, password, message_label, edit_search, toggle_edit, reset):
+def edit(search: str, search_2: str, account: str, username: str, password: str, message_label: tk.Label,
+         toggle_edit: Callable, reset: Callable):
     """
        Edit an existing account's details.
 
@@ -98,7 +123,6 @@ def edit(search, search_2, account, username, password, message_label, edit_sear
            username (str): New username.
            password (str): New password.
            message_label (tk.Label): The label to display messages.
-           edit_search (tk.Entry): The entry widget for searching.
            toggle_edit (function): Function to toggle edit fields visibility.
            reset (Function): Function to reset the main combobox
        """
@@ -109,27 +133,25 @@ def edit(search, search_2, account, username, password, message_label, edit_sear
     cursor = connection.cursor()
 
     result = cursor.execute("SELECT USERNAME, ACCOUNT, PASSWORD FROM manager WHERE USERNAME=? AND ACCOUNT=?",
-                            (search.title(), search_2.title()))
+                            (search.title(), search_2.title(),))
 
     existing_data = result.fetchone()
     if not existing_data:
         show_message(message_label, "Account not found", "red")
-        edit_search.delete(0, tk.END)
     else:
         new_account = account.strip() if account.strip() else existing_data[1]
         new_username = username.strip() if username.strip() else existing_data[0]
         new_password = password.strip() if password.strip() else existing_data[2]
-
         cursor.execute("UPDATE manager SET ACCOUNT=?, USERNAME=?, PASSWORD=? WHERE USERNAME=?",
                        (new_account.title(), new_username.title(), new_password, search))
         connection.commit()
         toggle_edit(False)
-        reset()
         show_message(message_label, "Account updated", "green")
+    reset()
     connection.close()
 
 
-def delete(Account, Username, message_label, toggle_delete, reset):
+def delete(Account: str, Username: str, message_label: tk.Label, toggle_delete: Callable, reset: Callable):
     """
        Delete an account from the database.
 
@@ -155,18 +177,16 @@ def delete(Account, Username, message_label, toggle_delete, reset):
 
     if not results:
         show_message(message_label, "Account does not exist!", "red")
-        toggle_delete(False)
-        reset()
     else:
         cursor.execute("DELETE FROM manager WHERE USERNAME=?", (Account.strip().title(),))
         connection.commit()
         toggle_delete(False)
-        reset()
         show_message(message_label, "Account deleted", "green")
+    reset()
     connection.close()
 
 
-def upload(message_label, toggle_upload, reset):
+def upload(message_label: tk.Label, toggle_upload: Callable, reset: Callable):
     """
         Upload the database file to Google Drive.
 
@@ -249,7 +269,8 @@ def upload(message_label, toggle_upload, reset):
         show_message(message_label, "An error occurred during upload", "red")
 
 
-def exist(username, message_label, toggle_search, search_listbox, reset):
+def exist(username: str, message_label: tk.Label, toggle_search: Callable, search_listbox: tk.scrolledtext.ScrolledText,
+          reset: Callable):
     """
         Check if an account exists in the database.
 
@@ -271,7 +292,6 @@ def exist(username, message_label, toggle_search, search_listbox, reset):
         res = cursor.execute("SELECT USERNAME, ACCOUNT, PASSWORD FROM manager WHERE USERNAME=?", (username.title(),))
         result = res.fetchall()
         if not result:
-            toggle_search(False)
             show_message(message_label, "Account doesnt exist", "red")
         else:
             show_message(message_label, "Showing Account / Accounts for 60 Seconds", "green", duration=60000)
@@ -281,11 +301,13 @@ def exist(username, message_label, toggle_search, search_listbox, reset):
                 search_listbox.insert(tk.END, f"ACCOUNT: {values[0]}\nUSERNAME: {values[1]}\nPASSWORD: {values[2]}\n\n")
             search_listbox.pack()  # Display the scrolled text widget
             toggle_search(False)
-            reset()
+        reset()
 
 
-def master(password, message_label, master_entry, option, toggle_master, toggle_search, toggle_upload, toggle_view,
-           reset):
+def master(password: str, message_label: tk.Label, master_entry: tk.Entry, option: tk.StringVar,
+           toggle_master: Callable,
+           toggle_search: Callable, toggle_upload: Callable, toggle_view: Callable,
+           reset: Callable):
     """
        Validate the master password and perform corresponding actions.
 
@@ -308,26 +330,24 @@ def master(password, message_label, master_entry, option, toggle_master, toggle_
         master_password = file.readline().strip()
     if password.strip() == "":
         show_message(message_label, "Please enter your password!", "red")
-        toggle_master(False)
     else:
         if password == master_password:
-            master_entry.delete(0, tk.END)
             toggle_master(False)
             show_message(message_label, "Authorization successful", "green")
-            if option == "search":
+            if option == "Search":
                 toggle_search(True)
-                reset()
-            elif option == "view":
+            elif option == "View All":
                 toggle_view(True)
-                reset()
-            elif option == "upload":
+            elif option == "Upload":
                 toggle_upload(True)
-                reset()
+            reset()
         else:
             master_entry.delete(0, tk.END)
             toggle_search(False)
             toggle_upload(False)
+            toggle_view(False)
             show_message(message_label, "Authorization failed", "red")
+            reset()
 
 
 def gui():
@@ -349,7 +369,7 @@ def gui():
     main_label.pack(pady=5)
 
     # Main taskbox for adding
-    Tasks = ["Options", "add", "view", "edit", "delete", "upload", "search"]
+    Tasks = ["Options", "Add", "Edit", "Delete", "Search", "View All", "Upload"]
     Task_label = tk.Label(window, text="Select your task:", font=("Lato", 15))
     items = tk.StringVar()
     Task_box = tk.ttk.Combobox(window, textvariable=items, font=("oswald", 20))
@@ -376,7 +396,7 @@ def gui():
     Accounts_box.bind('<<ComboboxSelected>>', selected_account)
 
     # Add Function Fields
-    add_user_label = tk.Label(window, text="Add service account to add: ", font=("oswald", 10))
+    add_user_label = tk.Label(window, text="Select A Service Provider: ", font=("oswald", 10))
     add_acc_label = tk.Label(window, text="Enter your account: ", font=("oswald", 10))
     add_pwd_label = tk.Label(window, text="Enter your password: ", font=("oswald", 10))
     add_user_label = tk.Label(window, text="Select account to add: ")
@@ -397,7 +417,6 @@ def gui():
     master_button = tk.Button(window, text="Check",
                               command=lambda: master(master_entry.get(), master_main_label, master_entry, items.get(),
                                                      toggle_master,
-
                                                      toggle_search, toggle_upload, toggle_view, reset),
                               font=("oswald", 20))
 
@@ -426,7 +445,7 @@ def gui():
     edit_button = tk.Button(window, text="Edit",
                             command=lambda: edit(edit_search.get(), edit_entry_2.get(), edit_entry_account.get(),
                                                  edit_entry_username.get(),
-                                                 edit_entry_password.get(), edit_main_label, edit_search, toggle_edit,
+                                                 edit_entry_password.get(), edit_main_label, toggle_edit,
                                                  reset), font=("oswald", 20))
 
     # Delete Function Fields
@@ -448,7 +467,7 @@ def gui():
 
     # View Function Fields
     view_label = tk.Label(window, text="Click To View")
-    view_label_main = tk.Label(window, text="")
+    view_label_main = tk.Label(window, text="", font=("oswald", 14))
     view_listbox = scrolledtext.ScrolledText(window, wrap=tk.WORD, width=40, height=20, font=("oswald", 14))
     view_button = tk.Button(window, text="View",
                             command=lambda: view(view_listbox, view_label_main, toggle_view, reset),
@@ -509,7 +528,7 @@ def gui():
             search_button.pack_forget()
             search_entry.delete(0, tk.END)
             search_listbox.config(state='disabled')
-            # Use the after method to display the search_listbox after 10 seconds
+            # Use the after method to unpack the search_listbox after 60 seconds
             search_listbox.after(60000, lambda: search_listbox.pack_forget())  # Pylint: disable=W0108
 
     # Used to unpack all edit fields
@@ -540,9 +559,9 @@ def gui():
             edit_entry_password.pack_forget()
             edit_button.pack_forget()
             edit_entry_account.delete(0, tk.END)
+            edit_entry_2.delete(0, tk.END)
             edit_entry_username.delete(0, tk.END)
             edit_entry_password.delete(0, tk.END)
-            edit_entry_2.delete(0, tk.END)
 
     # Used to unpack all delete fields
     def toggle_delete(enable):
@@ -591,15 +610,16 @@ def gui():
         if selected_value == "Options":
             main_label.config(text="Please select an action!", fg="red")
             main_label.pack()  # Show the main label when "Options" is selected
-        elif selected_value == "add":
+        elif selected_value == "Add":
             toggle_add_fields(True)
             toggle_edit(False)
             toggle_delete(False)
             toggle_search(False)
             toggle_master(False)
+            view_label_main.pack_forget()
             view_listbox.pack_forget()
             search_listbox.pack_forget()
-        elif selected_value == "view":
+        elif selected_value == "View All":
             toggle_master(True)
             toggle_search(False)
             toggle_delete(False)
@@ -607,38 +627,41 @@ def gui():
             toggle_add_fields(False)
             toggle_view(False)
             search_listbox.pack_forget()
-        elif selected_value == "search":
+        elif selected_value == "Search":
             toggle_master(True)
             toggle_search(False)
             toggle_delete(False)
             toggle_edit(False)
             toggle_add_fields(False)
-        elif selected_value == "delete":
+            view_listbox.pack_forget()
+            view_label_main.pack_forget()
+        elif selected_value == "Delete":
             toggle_delete(True)
             toggle_search(False)
             toggle_edit(False)
             toggle_add_fields(False)
             toggle_master(False)
+            view_label_main.pack_forget()
             view_listbox.pack_forget()
             search_listbox.pack_forget()
-        elif selected_value == "edit":
+        elif selected_value == "Edit":
             toggle_edit(True)
             toggle_search(False)
             toggle_delete(False)
             toggle_master(False)
             toggle_add_fields(False)
+            view_label_main.pack_forget()
             view_listbox.pack_forget()
             search_listbox.pack_forget()
-        elif selected_value == "upload":
+        elif selected_value == "Upload":
             toggle_search(False)
             toggle_delete(False)
             toggle_edit(False)
             toggle_master(True)
             toggle_add_fields(False)
+            view_label_main.pack_forget()
             view_listbox.pack_forget()
             search_listbox.pack_forget()
-        else:
-            return "Select a value from the dropdown list"
 
     # Main Combobox
     Task_box.bind('<<ComboboxSelected>>', get_value)
@@ -679,20 +702,22 @@ def gui():
         widget.bind("<Return>", handle_enter)
     for button in [add_button, master_button, search_button, edit_button, delete_Button, upload_button, view_button]:
         button.bind("<Return>", handle_enter)
-
+    # Start the tkinter main loop
     window.mainloop()
 
 
 def logging_function():
     """Creates a console and file logging handler that logs messages"""
-    logging.basicConfig(level=logging.DEBUG, format='%(funcName)s - %(message)s - %(asctime)s - %(levelname)s')
+    logging.basicConfig(level=logging.DEBUG, format='%(funcName)s - %(message)s - %(asctime)s - %(levelname)s',
+                        datefmt="%Y-%m-%d %I:%M:%S")
 
     # Create a file handler
     file_handler = logging.FileHandler('password_manager.log')
     file_handler.setLevel(logging.WARNING)  # Set the desired log level for the file handler
 
     # Create a formatter and attach it to the handlers
-    formatter = logging.Formatter('%(funcName)s - %(message)s - %(asctime)s - %(levelname)s')
+    formatter = logging.Formatter('%(funcName)s - %(message)s - %(asctime)s - %(levelname)s',
+                                  "%Y-%m-%d %I:%M:%S")
     file_handler.setFormatter(formatter)
 
     # Get the root logger and add the handlers
