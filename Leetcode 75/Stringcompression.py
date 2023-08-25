@@ -15,10 +15,10 @@ class Solution(object):
                 count = 1
 
         compressed_str += chars[-1] + (str(count) if count > 1 else "")
-
-        if len(compressed_str) < len(chars):
-            chars = list(compressed_str)
-            return len(compressed_str), chars
+        
+        chars[:] = list(compressed_str)
+        
+        return len(compressed_str)
 
 
 if __name__ == '__main__':
