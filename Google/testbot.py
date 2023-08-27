@@ -12,7 +12,6 @@ bot = commands.Bot(command_prefix='$', intents=intents)
 def quote_generator():
     response = requests.get("https://zenquotes.io/api/random")
     data = json.loads(response.content)
-    print(data)
     quote = data[0]['q'] + "-" + data[0]['a']
     return quote
 
