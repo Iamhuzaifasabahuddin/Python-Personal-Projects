@@ -4,6 +4,8 @@ import sqlite3
 import os
 import logging
 from typing import Callable
+from ttkthemes import ThemedStyle
+from MouseWheel import ScrolledWindow
 
 from google.auth.transport.requests import Request  # type: ignore
 from google.oauth2.credentials import Credentials  # type: ignore
@@ -363,9 +365,12 @@ def gui():
     window.geometry("600x600")
     icon = tk.PhotoImage(file="password.png")
     window.iconphoto(True, icon)
+    style = ThemedStyle(window)
+    style.set_theme("black")
 
     # Main Label
     main_label = tk.Label(text="Welcome To The Password Manager", font=("Lato", 20))
+    main_label_msg = tk.Label(text="", font=("oswald", 14))
     main_label.pack(pady=5)
 
     # Main taskbox for adding
@@ -396,24 +401,24 @@ def gui():
     Accounts_box.bind('<<ComboboxSelected>>', selected_account)
 
     # Add Function Fields
-    add_user_label = tk.Label(window, text="Select A Service Provider: ", font=("oswald", 10))
-    add_acc_label = tk.Label(window, text="Enter your account: ", font=("oswald", 10))
-    add_pwd_label = tk.Label(window, text="Enter your password: ", font=("oswald", 10))
-    add_user_label = tk.Label(window, text="Select account to add: ")
-    add_acc_label = tk.Label(window, text="Enter your account/Username: ")
-    add_pwd_label = tk.Label(window, text="Enter your password: ")
-    add_acc_entry = tk.Entry(window, font=("oswald", 20))
-    add_pwd_entry = tk.Entry(window, font=("oswald", 20), show="*")
-    add_message_label = tk.Label(window, text="", font=("oswald", 14))
+    add_user_label = tk.Label(window, text="Select A Service Provider: ", font=("oswald", 10), anchor="center")
+    add_acc_label = tk.Label(window, text="Enter your account: ", font=("oswald", 10), anchor="center")
+    add_pwd_label = tk.Label(window, text="Enter your password: ", font=("oswald", 10), anchor="center")
+    add_user_label = tk.Label(window, text="Select account to add: ", anchor="center")
+    add_acc_label = tk.Label(window, text="Enter your account/Username: ", anchor="center")
+    add_pwd_label = tk.Label(window, text="Enter your password: ", anchor="center")
+    add_acc_entry = tk.Entry(window, font=("oswald", 20), justify="left")
+    add_pwd_entry = tk.Entry(window, font=("oswald", 20), show="*", justify="left")
+    add_message_label = tk.Label(window, text="", font=("oswald", 14), anchor="center")
     add_button = tk.Button(window, text="Add Account",
                            command=lambda: add(selected_account, add_acc_entry.get(), add_pwd_entry.get(),
                                                add_message_label, toggle_add_fields, reset),
                            font=("oswald", 20))
 
     # Master Function Fields
-    master_label = tk.Label(window, text="Enter Master Password: ", font=("oswald", 10))
+    master_label = tk.Label(window, text="Enter Master Password: ", font=("oswald", 10), anchor="center")
     master_entry = tk.Entry(window, font=("oswald", 20), show="*")
-    master_main_label = tk.Label(window, text="", font=("oswald", 14))
+    master_main_label = tk.Label(window, text="", font=("oswald", 14), anchor="center")
     master_button = tk.Button(window, text="Check",
                               command=lambda: master(master_entry.get(), master_main_label, master_entry, items.get(),
                                                      toggle_master,
@@ -421,9 +426,9 @@ def gui():
                               font=("oswald", 20))
 
     # Search Function Fields
-    search_label = tk.Label(window, text="Enter Account To Search: ", font=("oswald", 10))
+    search_label = tk.Label(window, text="Enter Account To Search: ", font=("oswald", 10), anchor="center")
     search_entry = tk.Entry(window, font=("oswald", 20))
-    search_main_label = tk.Label(window, text="", font=("oswald", 14))
+    search_main_label = tk.Label(window, text="", font=("oswald", 14), anchor="center")
     search_listbox = scrolledtext.ScrolledText(window, wrap=tk.WORD, width=40, height=20, font=("oswald", 14))
     search_button = tk.Button(window, text="Search",
                               command=lambda: exist(search_entry.get(), search_main_label, toggle_search,
@@ -431,17 +436,17 @@ def gui():
                               font=("oswald", 20))
 
     # Edit Function Fields
-    edit_label = tk.Label(window, text="Enter Account To Edit: ", font=("oswald", 10))
+    edit_label = tk.Label(window, text="Enter Account To Edit: ", font=("oswald", 10), anchor="center")
     edit_search = tk.Entry(window, font=("oswald", 20))
-    edit_label_2 = tk.Label(window, text="Enter Username to Edit: ", font=("oswald", 10))
+    edit_label_2 = tk.Label(window, text="Enter Username to Edit: ", font=("oswald", 10), anchor="center")
     edit_entry_2 = tk.Entry(window, font=("oswald", 20))
-    edit_label_user = tk.Label(window, text="Enter Updated Account: ", font=("oswald", 10))
+    edit_label_user = tk.Label(window, text="Enter Updated Account: ", font=("oswald", 10), anchor="center")
     edit_entry_username = tk.Entry(window, font=("oswald", 20))
-    edit_label_acc = tk.Label(window, text="Enter Updated Username: ", font=("oswald", 10))
+    edit_label_acc = tk.Label(window, text="Enter Updated Username: ", font=("oswald", 10), anchor="center")
     edit_entry_account = tk.Entry(window, font=("oswald", 20))
-    edit_label_pass = tk.Label(window, text="Enter Updated Password: ", font=("oswald", 10))
+    edit_label_pass = tk.Label(window, text="Enter Updated Password: ", font=("oswald", 10), anchor="center")
     edit_entry_password = tk.Entry(window, font=("oswald", 20), show="*")
-    edit_main_label = tk.Label(window, text="", font=("oswald", 14))
+    edit_main_label = tk.Label(window, text="", font=("oswald", 14), anchor="center")
     edit_button = tk.Button(window, text="Edit",
                             command=lambda: edit(edit_search.get(), edit_entry_2.get(), edit_entry_account.get(),
                                                  edit_entry_username.get(),
@@ -449,25 +454,26 @@ def gui():
                                                  reset), font=("oswald", 20))
 
     # Delete Function Fields
-    delete_main_label = tk.Label(window, text="", font=("oswald", 14))
-    delete_entry_label = tk.Label(window, text="Enter Account to Be Deleted: ", font=("oswald", 10))
+    delete_main_label = tk.Label(window, text="", font=("oswald", 14), anchor="center")
+    delete_entry_label = tk.Label(window, text="Enter Account to Be Deleted: ", font=("oswald", 10), anchor="center")
     delete_entry = tk.Entry(window, font=("oswald", 20))
-    delete_username_label = tk.Label(window, text="Enter Username to Be Deleted: ", font=("oswald", 10))
+    delete_username_label = tk.Label(window, text="Enter Username to Be Deleted: ", font=("oswald", 10),
+                                     anchor="center")
     delete_username_entry = tk.Entry(window, font=("oswald", 20))
-    delete_Button = tk.Button(window, text="Delete",
+    delete_button = tk.Button(window, text="Delete",
                               command=lambda: delete(delete_entry.get(), delete_username_entry.get(),
                                                      delete_main_label,
                                                      toggle_delete, reset), font=("oswald", 20))
 
     # Upload Function Fields
-    upload_label = tk.Label(window, text="Click to Upload: ", font=("oswald", 10))
+    upload_label = tk.Label(window, text="Click to Upload: ", font=("oswald", 10), anchor="center")
     upload_main_label = tk.Label(window, text="", font=("oswald", 14))
     upload_button = tk.Button(window, text="Upload", command=lambda: upload(upload_main_label, toggle_upload, reset),
                               font=("oswald", 20))
 
     # View Function Fields
-    view_label = tk.Label(window, text="Click To View")
-    view_label_main = tk.Label(window, text="", font=("oswald", 14))
+    view_label = tk.Label(window, text="Click To View", anchor="center")
+    view_label_main = tk.Label(window, text="", font=("oswald", 14), anchor="center")
     view_listbox = scrolledtext.ScrolledText(window, wrap=tk.WORD, width=40, height=20, font=("oswald", 14))
     view_button = tk.Button(window, text="View",
                             command=lambda: view(view_listbox, view_label_main, toggle_view, reset),
@@ -571,13 +577,13 @@ def gui():
             delete_entry.pack(pady=5)
             delete_username_label.pack(pady=5)
             delete_username_entry.pack(pady=5)
-            delete_Button.pack(pady=10)
+            delete_button.pack(pady=10)
         else:
             delete_entry_label.pack_forget()
             delete_entry.pack_forget()
             delete_username_label.pack_forget()
             delete_username_entry.pack_forget()
-            delete_Button.pack_forget()
+            delete_button.pack_forget()
             delete_entry.delete(0, tk.END)
             delete_username_entry.delete(0, tk.END)
 
@@ -608,8 +614,16 @@ def gui():
         """Return the value from the combobox"""
         selected_value = items.get()
         if selected_value == "Options":
-            main_label.config(text="Please select an action!", fg="red")
-            main_label.pack()  # Show the main label when "Options" is selected
+            main_label_msg.configure(text="Please select an action!", fg="red")
+            main_label_msg.pack(pady=5)  # Show the main label when "Options" is selected
+            main_label_msg.after(2000, lambda: main_label_msg.pack_forget())
+            toggle_add_fields(False)
+            toggle_view(False)
+            toggle_delete(False)
+            toggle_master(False)
+            toggle_edit(False)
+            toggle_upload(False)
+            toggle_search(False)
         elif selected_value == "Add":
             toggle_add_fields(True)
             toggle_edit(False)
@@ -680,7 +694,7 @@ def gui():
         edit_entry_account: edit_entry_password,
         edit_entry_password: edit_button,
         delete_entry: delete_username_entry,
-        delete_username_entry: delete_Button,
+        delete_username_entry: delete_button,
         upload_button: upload_button,
         view_button: view_button
     }
@@ -692,7 +706,7 @@ def gui():
             if focused_widget == widgets:
                 next_widget.focus()
                 break
-        for buttons in [add_button, master_button, search_button, edit_button, delete_Button, upload_button,
+        for buttons in [add_button, master_button, search_button, edit_button, delete_button, upload_button,
                         view_button]:
             if focused_widget == buttons:
                 buttons.invoke()  # Simulate a button click
@@ -700,8 +714,9 @@ def gui():
     # Bind the <Return> key event to all relevant entry fields and buttons
     for widget in entry_mapping:
         widget.bind("<Return>", handle_enter)
-    for button in [add_button, master_button, search_button, edit_button, delete_Button, upload_button, view_button]:
+    for button in [add_button, master_button, search_button, edit_button, delete_button, upload_button, view_button]:
         button.bind("<Return>", handle_enter)
+
     # Start the tkinter main loop
     window.mainloop()
 
