@@ -5,7 +5,6 @@ import os
 import logging
 from typing import Callable
 from ttkthemes import ThemedStyle
-from MouseWheel import ScrolledWindow
 
 from google.auth.transport.requests import Request  # type: ignore
 from google.oauth2.credentials import Credentials  # type: ignore
