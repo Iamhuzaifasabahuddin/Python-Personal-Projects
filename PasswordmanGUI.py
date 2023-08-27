@@ -499,7 +499,7 @@ def gui():
             add_acc_entry.pack_forget()
             add_pwd_label.pack_forget()
             add_pwd_entry.pack_forget()
-            add_user_label.pack_forget()  # Hide the label for adding a new account
+            add_user_label.pack_forget()
             Accounts_box.pack_forget()
             add_button.pack_forget()
             add_acc_entry.delete(0, tk.END)
@@ -533,7 +533,6 @@ def gui():
             search_button.pack_forget()
             search_entry.delete(0, tk.END)
             search_listbox.config(state='disabled')
-            # Use the after method to unpack the search_listbox after 60 seconds
             search_listbox.after(60000, lambda: search_listbox.pack_forget())  # Pylint: disable=W0108
 
     # Used to unpack all edit fields
@@ -614,7 +613,7 @@ def gui():
         selected_value = items.get()
         if selected_value == "Options":
             main_label_msg.configure(text="Please select an action!", fg="red")
-            main_label_msg.pack(pady=5)  # Show the main label when "Options" is selected
+            main_label_msg.pack(pady=5)
             main_label_msg.after(2000, lambda: main_label_msg.pack_forget())
             toggle_add_fields(False)
             toggle_view(False)
