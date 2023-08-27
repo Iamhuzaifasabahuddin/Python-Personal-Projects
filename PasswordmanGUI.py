@@ -257,14 +257,13 @@ def upload(message_label: tk.Label, toggle_upload: Callable, reset: Callable):
             update_file = service.files().update(fileId=existing_file_id, media_body=media).execute()
 
             logging.info("Updated file: %s", update_file.get('name'))
-            reset()
             show_message(message_label, "File Updated Successfully", "green")
         else:
             media = MediaFileUpload(file_path)
             upload_file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
             logging.info(f"Uploaded file: %s", upload_file.get('name'))
-            reset()
             show_message(message_label, "File Uploaded To Google Drive", "green")
+        reset()
     except HttpError as error:
         logging.info(f'An error occurred: {error}')
         reset()
