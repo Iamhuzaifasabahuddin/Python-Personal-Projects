@@ -674,11 +674,6 @@ def gui():
             view_listbox.pack_forget()
             search_listbox.pack_forget()
 
-    # Main Combobox
-    Task_box.bind('<<ComboboxSelected>>', get_value)
-    Task_label.pack(pady=5)
-    Task_box.pack(pady=5)
-
     # Define a dictionary that maps each entry field to its corresponding next field or button
     entry_mapping = {
         add_acc_entry: add_pwd_entry,
@@ -702,17 +697,25 @@ def gui():
         for widgets, next_widget in entry_mapping.items():
             if focused_widget == widgets:
                 next_widget.focus()
-                break
+                break  # We break as if we found our widget hence no need to loop further
         for buttons in [add_button, master_button, search_button, edit_button, delete_button, upload_button,
                         view_button]:
             if focused_widget == buttons:
                 buttons.invoke()  # Simulate a button click
+        upload_button.focus_set()  # No focus due to just a button hence we set them manually
+        view_button.focus_set()
 
     # Bind the <Return> key event to all relevant entry fields and buttons
     for widget in entry_mapping:
         widget.bind("<Return>", handle_enter)
     for button in [add_button, master_button, search_button, edit_button, delete_button, upload_button, view_button]:
         button.bind("<Return>", handle_enter)
+
+    # Main Combobox
+    Task_box.bind('<<ComboboxSelected>>', get_value)
+    Task_label.pack(pady=5)
+    Task_box.pack(pady=5)
+
 
     # Start the tkinter main loop
     window.mainloop()
