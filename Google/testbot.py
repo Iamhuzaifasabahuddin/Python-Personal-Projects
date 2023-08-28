@@ -1,8 +1,19 @@
+import os
 import discord
-import requests
 import json
-from Google.botcalendar import *
+import requests  # type: ignore
+from Google.botcalendar import add_event, commit_hours, get_Hours_from_database, get_events1, remove_event
 from discord.ext import commands
+from google.auth.transport.requests import Request  # type: ignore
+from google.oauth2.credentials import Credentials  # type: ignore
+from google_auth_oauthlib.flow import InstalledAppFlow  # type: ignore
+from googleapiclient.discovery import build  # type: ignore
+from googleapiclient.errors import HttpError  # type: ignore
+
+apikey = json.load(open("Search_Engine_Credentials.json", "r"))["KEYS"]["API"]
+engineid = json.load(open("Search_Engine_Credentials.json", "r"))["KEYS"]["ENGINEID"]
+
+
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -14,6 +25,28 @@ def quote_generator():
     data = json.loads(response.content)
     quote = data[0]['q'] + "-" + data[0]['a']
     return quote
+
+
+def Search(query, nums, sorting=None):
+    url = f"https://www.googleapis.com/customsearch/v1"
+    params = {
+        "q": query,
+        "key": apikey,
+        "cx": engineid,
+        # "searchType": "text" or image
+        "num": nums,
+        "sort": sorting
+
+    }
+    response = requests.get(url, params=params)
+    data = response.json()
+    search_results = []
+    if "items" in data:
+        for item in data["items"]:
+            Title = item.get("title", "No Title")
+            Link = item.get("link", "No Link")
+            search_results.append(f"Found result {Title} and link {Link}")
+    return search_results
 
 
 @bot.event
@@ -33,6 +66,12 @@ async def inspire(ctx):
     quote = quote_generator()
     await ctx.send(quote)
 
+
+@bot.command()
+async def google_search(ctx, query, nums, sort=None):
+    results = Search(query, nums, sort)
+    output_msg = "\n".join(results)
+    await ctx.send("Showing results:\n" + output_msg)
 
 @bot.command()
 async def add(ctx, description: str, duration: float):
