@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, scrolledtext
+from tkinter import ttk, scrolledtext, messagebox
 import sqlite3
 import os
 import logging
@@ -65,7 +65,9 @@ def add(username: Callable, account: str, password: str, message_label: tk.Label
        """
     selected_account_value = username()
     if selected_account_value.strip() == "" or account.strip() == "" or password.strip() == "":
-        show_message(message_label, "Username or Account or Password cannot be empty", "red")
+        if not hasattr(add, "empty_fields_displayed"):
+            show_message(message_label, "Username or Account or Password cannot be empty", "red")
+            add.empty_fields_displayed = True
     else:
         if not search_database(selected_account_value.title(), account.title()):
             connection = sqlite3.connect('Passwords.db')
@@ -74,9 +76,13 @@ def add(username: Callable, account: str, password: str, message_label: tk.Label
                                                                    account.title(), password))
             connection.commit()
             toggle_add_fields(False)
-            show_message(message_label, "Account added successfully!", "green")
+            if not hasattr(add, "account_added_displayed"):
+                show_message(message_label, "Account added successfully!", "green")
+                add.account_added_displayed = True
         else:
-            show_message(message_label, "Account Already Exists", "red")
+            if not hasattr(add, "account_exists_displayed"):
+                show_message(message_label, "Account Already Exists", "red")
+                add.account_exists_displayed = True
     reset()
 
 
@@ -93,23 +99,25 @@ def view(view_listbox: tk.scrolledtext.ScrolledText, message_label: tk.Label, to
          toggle_view (function): Function to toggle view fields visibility.
          reset (Function): Function to reset the main combobox.
      """
-    connection = sqlite3.connect('Passwords.db')
-    cursor = connection.cursor()
+    if not hasattr(view, "view_displayed"):
+        connection = sqlite3.connect('Passwords.db')
+        cursor = connection.cursor()
 
-    results = cursor.execute("SELECT * FROM manager")
-    results = results.fetchall()
-    if not results:
-        show_message(message_label, "No Accounts To Display", 'red')
-    else:
-        show_message(message_label, "Showing Account / Accounts for 60 Seconds", "green", duration=60000)
-        for index, values in enumerate(results, start=1):
-            view_listbox.insert(tk.END, f"Account {index}\n\n")  # We insert from END due to it adds from where
-            # it left off
-            view_listbox.insert(tk.END, f"ACCOUNT: {values[0]}\nUSERNAME: {values[1]}\nPASSWORD: {values[2]}\n\n")
-        view_listbox.pack()
-        toggle_view(False)
-        reset()
-    connection.close()
+        results = cursor.execute("SELECT * FROM manager")
+        results = results.fetchall()
+        if not results:
+            show_message(message_label, "No Accounts To Display", 'red')
+        else:
+            show_message(message_label, "Showing Account / Accounts for 60 Seconds", "green", duration=60000)
+            for index, values in enumerate(results, start=1):
+                view_listbox.insert(tk.END, f"Account {index}\n\n")
+                view_listbox.insert(tk.END, f"ACCOUNT: {values[0]}\nUSERNAME: {values[1]}\nPASSWORD: {values[2]}\n\n")
+            view_listbox.pack()
+            toggle_view(False)
+            reset()
+        connection.close()
+
+        view.view_displayed = True  # Set the flag after displaying the view
 
 
 def edit(search: str, search_2: str, account: str, username: str, password: str, message_label: tk.Label,
@@ -138,16 +146,22 @@ def edit(search: str, search_2: str, account: str, username: str, password: str,
 
     existing_data = result.fetchone()
     if not existing_data:
-        show_message(message_label, "Account not found", "red")
+        if not hasattr(edit, "account_not_found_displayed"):
+            show_message(message_label, "Account not found", "red")
+            edit.account_not_found_displayed = True
     else:
-        new_account = account.strip() if account.strip() else existing_data[1]
-        new_username = username.strip() if username.strip() else existing_data[0]
-        new_password = password.strip() if password.strip() else existing_data[2]
-        cursor.execute("UPDATE manager SET ACCOUNT=?, USERNAME=?, PASSWORD=? WHERE USERNAME=?",
-                       (new_account.title(), new_username.title(), new_password, search))
-        connection.commit()
-        toggle_edit(False)
-        show_message(message_label, "Account updated", "green")
+        if not hasattr(edit, "edit_displayed"):
+            new_account = account.strip() if account.strip() else existing_data[1]
+            new_username = username.strip() if username.strip() else existing_data[0]
+            new_password = password.strip() if password.strip() else existing_data[2]
+            cursor.execute("UPDATE manager SET ACCOUNT=?, USERNAME=?, PASSWORD=? WHERE USERNAME=?",
+                           (new_account.title(), new_username.title(), new_password, search))
+            connection.commit()
+            toggle_edit(False)
+            if not hasattr(edit, "account_updated_displayed"):
+                show_message(message_label, "Account updated", "green")
+                edit.account_updated_displayed = True
+
     reset()
     connection.close()
 
@@ -177,12 +191,17 @@ def delete(Account: str, Username: str, message_label: tk.Label, toggle_delete: 
     results = results.fetchall()
 
     if not results:
-        show_message(message_label, "Account does not exist!", "red")
+        if not hasattr(delete, "account_not_found_displayed"):
+            show_message(message_label, "Account does not exist!", "red")
+            delete.account_not_found_displayed = True
     else:
-        cursor.execute("DELETE FROM manager WHERE USERNAME=?", (Account.strip().title(),))
-        connection.commit()
-        toggle_delete(False)
-        show_message(message_label, "Account deleted", "green")
+        if not hasattr(delete, "account_deleted_displayed"):
+            cursor.execute("DELETE FROM manager WHERE USERNAME=?", (Account.strip().title(),))
+            connection.commit()
+            toggle_delete(False)
+            show_message(message_label, "Account deleted", "green")
+            delete.account_deleted_displayed = True
+
     reset()
     connection.close()
 
@@ -294,12 +313,14 @@ def exist(username: str, message_label: tk.Label, toggle_search: Callable, searc
         if not result:
             show_message(message_label, "Account doesnt exist", "red")
         else:
-            show_message(message_label, "Showing Account / Accounts for 60 Seconds", "green", duration=60000)
-            for index, values in enumerate(result, start=1):
-                search_listbox.insert(tk.END, f"Account {index}\n\n")  # We insert from END due to it adds from where
-                # it left off
-                search_listbox.insert(tk.END, f"ACCOUNT: {values[0]}\nUSERNAME: {values[1]}\nPASSWORD: {values[2]}\n\n")
-            search_listbox.pack()  # Display the scrolled text widget
+            if not hasattr(exist, "search_results_displayed"):
+                show_message(message_label, "Showing Account / Accounts for 60 Seconds", "green", duration=60000)
+                for index, values in enumerate(result, start=1):
+                    search_listbox.insert(tk.END, f"Account {index}\n\n")
+                    search_listbox.insert(tk.END,
+                                          f"ACCOUNT: {values[0]}\nUSERNAME: {values[1]}\nPASSWORD: {values[2]}\n\n")
+                search_listbox.pack()
+                exist.search_results_displayed = True  # Set the flag to True after displaying the results
             toggle_search(False)
         reset()
 
@@ -329,10 +350,15 @@ def master(password: str, message_label: tk.Label, master_entry: tk.Entry, optio
     with open("master.txt", "r") as file:
         master_password = file.readline().strip()
     if password.strip() == "":
-        show_message(message_label, "Please enter your password!", "red")
+        if not hasattr(master, "password_empty_displayed"):
+            show_message(message_label, "Please enter your password!", "red")
+            master.password_empty_displayed = True
     else:
         if password == master_password:
             toggle_master(False)
+            if not hasattr(master, "auth_successful_displayed"):
+                show_message(message_label, "Authorization successful", "green")
+                master.auth_successful_displayed = True
             show_message(message_label, "Authorization successful", "green")
             if option == "Search":
                 toggle_search(True)
@@ -346,7 +372,9 @@ def master(password: str, message_label: tk.Label, master_entry: tk.Entry, optio
             toggle_search(False)
             toggle_upload(False)
             toggle_view(False)
-            show_message(message_label, "Authorization failed", "red")
+            if not hasattr(master, "auth_failed_displayed"):
+                show_message(message_label, "Authorization failed", "red")
+                master.auth_failed_displayed = True
             reset()
 
 
@@ -366,24 +394,28 @@ def gui():
     style = ThemedStyle(window)
     style.set_theme("black")
 
+    # Theme Switch Function Button
+    frame = ttk.Frame(window)
+    frame.pack(side="top", anchor="center", pady=5)
+
     # Main Label
-    main_label = tk.Label(text="Welcome To The Password Manager", font=("Lato", 20))
-    main_label_msg = tk.Label(text="", font=("oswald", 14))
+    main_label = tk.Label(text="Welcome To The Password Manager", font=("Quicksand", 25, "italic"))
+    main_label_msg = tk.Label(text="", font=("Nunito", 14))
     main_label.pack(pady=5)
 
     # Main taskbox for adding
     Tasks = ["Options", "Add", "Edit", "Delete", "Search", "View All", "Upload"]
-    Task_label = tk.Label(window, text="Select your task:", font=("Lato", 15))
+    Task_label = tk.Label(window, text="Select your task:", font=("Quicksand", 15, "italic"))
     items = tk.StringVar()
-    Task_box = tk.ttk.Combobox(window, textvariable=items, font=("oswald", 20))
+    Task_box = tk.ttk.Combobox(window, textvariable=items, font=("Nunito", 20))
     Task_box["values"] = Tasks
     Task_box["state"] = 'readonly'
 
     # Accounts adding ComboBox
     Accounts = [" ", "Facebook", "X", "Instagram", "Gmail", "LinkedIn", "Github", "Hotmail", "University", "Other"]
-    add_user_label = tk.Label(window, text="Select account to add: ")
+    add_user_label = tk.Label(window, text="Select account to add: ", font=("Quicksand", 15, "italic"))
     accounts = tk.StringVar()
-    Accounts_box = tk.ttk.Combobox(window, textvariable=accounts, font=("oswald", 20))
+    Accounts_box = tk.ttk.Combobox(window, textvariable=accounts, font=("Nunito", 20))
     Accounts_box["values"] = Accounts
     Accounts_box["state"] = 'readonly'
 
@@ -399,87 +431,96 @@ def gui():
     Accounts_box.bind('<<ComboboxSelected>>', selected_account)
 
     # Add Function Fields
-    add_user_label = tk.Label(window, text="Select A Service Provider: ", font=("oswald", 10), anchor="center")
-    add_acc_label = tk.Label(window, text="Enter your account: ", font=("oswald", 10), anchor="center")
-    add_pwd_label = tk.Label(window, text="Enter your password: ", font=("oswald", 10), anchor="center")
+    add_user_label = tk.Label(window, text="Select A Service Provider: ", font=("Nunito", 10), anchor="center")
+    add_acc_label = tk.Label(window, text="Enter your account: ", font=("Nunito", 10), anchor="center")
+    add_pwd_label = tk.Label(window, text="Enter your password: ", font=("Nunito", 10), anchor="center")
     add_user_label = tk.Label(window, text="Select account to add: ", anchor="center")
     add_acc_label = tk.Label(window, text="Enter your account/Username: ", anchor="center")
     add_pwd_label = tk.Label(window, text="Enter your password: ", anchor="center")
-    add_acc_entry = tk.Entry(window, font=("oswald", 20), justify="left")
-    add_pwd_entry = tk.Entry(window, font=("oswald", 20), show="*", justify="left")
-    add_message_label = tk.Label(window, text="", font=("oswald", 14), anchor="center")
+    add_acc_entry = tk.Entry(window, font=("Nunito", 20), justify="left")
+    add_pwd_entry = tk.Entry(window, font=("Nunito", 20), show="*", justify="left")
+    add_message_label = tk.Label(window, text="", font=("Nunito", 14), anchor="center")
     add_button = tk.Button(window, text="Add Account",
                            command=lambda: add(selected_account, add_acc_entry.get(), add_pwd_entry.get(),
                                                add_message_label, toggle_add_fields, reset),
-                           font=("oswald", 20))
+                           font=("Nunito", 15))
 
     # Master Function Fields
-    master_label = tk.Label(window, text="Enter Master Password: ", font=("oswald", 10), anchor="center")
-    master_entry = tk.Entry(window, font=("oswald", 20), show="*")
-    master_main_label = tk.Label(window, text="", font=("oswald", 14), anchor="center")
+    master_label = tk.Label(window, text="Enter Master Password: ", font=("Nunito", 10), anchor="center")
+    master_entry = tk.Entry(window, font=("Nunito", 20), show="*")
+    master_main_label = tk.Label(window, text="", font=("Nunito", 14), anchor="center")
     master_button = tk.Button(window, text="Check",
                               command=lambda: master(master_entry.get(), master_main_label, master_entry, items.get(),
                                                      toggle_master,
                                                      toggle_search, toggle_upload, toggle_view, reset),
-                              font=("oswald", 20))
+                              font=("Nunito", 15))
 
     # Search Function Fields
-    search_label = tk.Label(window, text="Enter Account To Search: ", font=("oswald", 10), anchor="center")
-    search_entry = tk.Entry(window, font=("oswald", 20))
-    search_main_label = tk.Label(window, text="", font=("oswald", 14), anchor="center")
-    search_listbox = scrolledtext.ScrolledText(window, wrap=tk.WORD, width=40, height=20, font=("oswald", 14))
+    search_label = tk.Label(window, text="Enter Account To Search: ", font=("Nunito", 10), anchor="center")
+    search_entry = tk.Entry(window, font=("Nunito", 20))
+    search_main_label = tk.Label(window, text="", font=("Nunito", 14), anchor="center")
+    search_listbox = scrolledtext.ScrolledText(window, wrap=tk.WORD, width=40, height=20, font=("Nunito", 14))
     search_button = tk.Button(window, text="Search",
                               command=lambda: exist(search_entry.get(), search_main_label, toggle_search,
                                                     search_listbox, reset),
-                              font=("oswald", 20))
+                              font=("Nunito", 15))
 
     # Edit Function Fields
-    edit_label = tk.Label(window, text="Enter Account To Edit: ", font=("oswald", 10), anchor="center")
-    edit_search = tk.Entry(window, font=("oswald", 20))
-    edit_label_2 = tk.Label(window, text="Enter Username to Edit: ", font=("oswald", 10), anchor="center")
-    edit_entry_2 = tk.Entry(window, font=("oswald", 20))
-    edit_label_user = tk.Label(window, text="Enter Updated Account: ", font=("oswald", 10), anchor="center")
-    edit_entry_username = tk.Entry(window, font=("oswald", 20))
-    edit_label_acc = tk.Label(window, text="Enter Updated Username: ", font=("oswald", 10), anchor="center")
-    edit_entry_account = tk.Entry(window, font=("oswald", 20))
-    edit_label_pass = tk.Label(window, text="Enter Updated Password: ", font=("oswald", 10), anchor="center")
-    edit_entry_password = tk.Entry(window, font=("oswald", 20), show="*")
-    edit_main_label = tk.Label(window, text="", font=("oswald", 14), anchor="center")
+    edit_label = tk.Label(window, text="Enter Account To Edit: ", font=("Nunito", 10), anchor="center")
+    edit_search = tk.Entry(window, font=("Nunito", 20))
+    edit_label_2 = tk.Label(window, text="Enter Username to Edit: ", font=("Nunito", 10), anchor="center")
+    edit_entry_2 = tk.Entry(window, font=("Nunito", 20))
+    edit_label_user = tk.Label(window, text="Enter Updated Account: ", font=("Nunito", 10), anchor="center")
+    edit_entry_username = tk.Entry(window, font=("Nunito", 20))
+    edit_label_acc = tk.Label(window, text="Enter Updated Username: ", font=("Nunito", 10), anchor="center")
+    edit_entry_account = tk.Entry(window, font=("Nunito", 20))
+    edit_label_pass = tk.Label(window, text="Enter Updated Password: ", font=("Nunito", 10), anchor="center")
+    edit_entry_password = tk.Entry(window, font=("Nunito", 20), show="*")
+    edit_main_label = tk.Label(window, text="", font=("Nunito", 14), anchor="center")
     edit_button = tk.Button(window, text="Edit",
                             command=lambda: edit(edit_search.get(), edit_entry_2.get(), edit_entry_account.get(),
                                                  edit_entry_username.get(),
                                                  edit_entry_password.get(), edit_main_label, toggle_edit,
-                                                 reset), font=("oswald", 20))
+                                                 reset), font=("Nunito", 15))
 
     # Delete Function Fields
-    delete_main_label = tk.Label(window, text="", font=("oswald", 14), anchor="center")
-    delete_entry_label = tk.Label(window, text="Enter Account to Be Deleted: ", font=("oswald", 10), anchor="center")
-    delete_entry = tk.Entry(window, font=("oswald", 20))
-    delete_username_label = tk.Label(window, text="Enter Username to Be Deleted: ", font=("oswald", 10),
+    delete_main_label = tk.Label(window, text="", font=("Nunito", 14), anchor="center")
+    delete_entry_label = tk.Label(window, text="Enter Account to Be Deleted: ", font=("Nunito", 10), anchor="center")
+    delete_entry = tk.Entry(window, font=("Nunito", 20))
+    delete_username_label = tk.Label(window, text="Enter Username to Be Deleted: ", font=("Nunito", 10),
                                      anchor="center")
-    delete_username_entry = tk.Entry(window, font=("oswald", 20))
+    delete_username_entry = tk.Entry(window, font=("Nunito", 20))
     delete_button = tk.Button(window, text="Delete",
                               command=lambda: delete(delete_entry.get(), delete_username_entry.get(),
                                                      delete_main_label,
-                                                     toggle_delete, reset), font=("oswald", 20))
+                                                     toggle_delete, reset), font=("Nunito", 15))
 
     # Upload Function Fields
-    upload_label = tk.Label(window, text="Click to Upload: ", font=("oswald", 10), anchor="center")
-    upload_main_label = tk.Label(window, text="", font=("oswald", 14))
+    upload_label = tk.Label(window, text="Click to Upload: ", font=("Nunito", 10), anchor="center")
+    upload_main_label = tk.Label(window, text="", font=("Nunito", 14))
     upload_button = tk.Button(window, text="Upload", command=lambda: upload(upload_main_label, toggle_upload, reset),
-                              font=("oswald", 20))
+                              font=("Nunito", 15))
 
     # View Function Fields
     view_label = tk.Label(window, text="Click To View", anchor="center")
-    view_label_main = tk.Label(window, text="", font=("oswald", 14), anchor="center")
-    view_listbox = scrolledtext.ScrolledText(window, wrap=tk.WORD, width=40, height=20, font=("oswald", 14))
+    view_label_main = tk.Label(window, text="", font=("Nunito", 14), anchor="center")
+    view_listbox = scrolledtext.ScrolledText(window, wrap=tk.WORD, width=40, height=20, font=("Nunito", 14))
     view_button = tk.Button(window, text="View",
                             command=lambda: view(view_listbox, view_label_main, toggle_view, reset),
-                            font=("oswald", 20))
+                            font=("Nunito", 15))
 
+    # Reset Function
     def reset():
         """ Resets the main combobox to index 0."""
         Task_box.set(Tasks[0])
+
+    # Closing the application message
+    def close():
+        if messagebox.askyesno(title="EXIT", message="Do You Wanna Quit? "):
+            window.destroy()
+            messagebox.showinfo(message="EXITED SUCCESSFULLY")
+
+    window.protocol("WM_DELETE_WINDOW", close)
 
     # Used to unpack all add fields
     def toggle_add_fields(enable):
@@ -716,6 +757,69 @@ def gui():
     Task_label.pack(pady=5)
     Task_box.pack(pady=5)
 
+    def toggle_theme():
+        current_theme = style.theme_use()
+        if current_theme == "vista":
+            new_theme = "black"
+            theme_button.config(text="Dark")
+        else:
+            new_theme = "vista"
+            theme_button.config(text="Light")
+        style.theme_use(new_theme)
+
+        # Set window background color based on the selected theme
+        if new_theme == "vista":
+            window_bg_color = "#2D272C"
+        else:
+            window_bg_color = "white"
+        window.config(bg=window_bg_color)
+
+        # Set label colors based on the selected theme
+        if new_theme == "vista":
+            label_text_color = "white"
+            label_bg_color = "#2D272C"
+        else:
+            label_text_color = "black"
+            label_bg_color = "white"
+
+        # Apply label text and background colors to all labels
+        for label in [main_label, main_label_msg, Task_label, add_user_label, add_acc_label, add_pwd_label,
+                      master_label,
+                      search_label, edit_label, edit_label_2, edit_label_user, edit_label_acc, edit_label_pass,
+                      delete_main_label, delete_entry_label, delete_username_label, upload_label, view_label,
+                      view_label_main]:
+            label.config(fg=label_text_color, bg=label_bg_color)
+
+        # Set entry and text widget colors based on the selected theme
+        if new_theme == "vista":
+            entry_fg_color = "white"
+            entry_bg_color = "#2D272C"
+            text_widget_fg_color = "white"
+            text_widget_bg_color = "#2D272C"
+        else:
+            entry_fg_color = "black"
+            entry_bg_color = "white"
+            text_widget_fg_color = "black"
+            text_widget_bg_color = "white"
+
+        # Apply entry and text widget colors
+        for entry in [add_acc_entry, add_pwd_entry, master_entry, search_entry, edit_search, edit_entry_2,
+                      edit_entry_username, edit_entry_account, edit_entry_password, delete_entry,
+                      delete_username_entry]:
+            entry.config(fg=entry_fg_color, bg=entry_bg_color)
+
+        # Apply text widget colors
+        for text_widget in [search_listbox, view_listbox]:
+            text_widget.config(fg=text_widget_fg_color, bg=text_widget_bg_color)
+
+        # Update Combobox style
+        combobox_style = ttk.Style()
+        combobox_style.map("TCombobox", fieldbackground=[("readonly", entry_bg_color)])
+        Task_box.config(style="TCombobox")
+        Accounts_box.config(style="TCombobox")
+
+    theme_button = tk.Button(frame, text="Dark", command=toggle_theme)
+    theme_button.pack()
 
     # Start the tkinter main loop
     window.mainloop()
