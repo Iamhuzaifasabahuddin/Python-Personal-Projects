@@ -787,12 +787,13 @@ def gui():
                       master_label,
                       search_label, edit_label, edit_label_2, edit_label_user, edit_label_acc, edit_label_pass,
                       delete_main_label, delete_entry_label, delete_username_label, upload_label, view_label,
-                      view_label_main]:
+                      view_label_main, edit_main_label, upload_main_label, search_main_label]:
             label.config(fg=label_text_color, bg=label_bg_color)
 
         # Set entry and text widget colors based on the selected theme
         if new_theme == "vista":
             entry_fg_color = "white"
+
             entry_bg_color = "#2D272C"
             text_widget_fg_color = "white"
             text_widget_bg_color = "#2D272C"
@@ -807,6 +808,9 @@ def gui():
                       edit_entry_username, edit_entry_account, edit_entry_password, delete_entry,
                       delete_username_entry]:
             entry.config(fg=entry_fg_color, bg=entry_bg_color)
+        for button in [add_button, edit_button, view_button, search_button, delete_button, upload_button,
+                       master_button]:
+            button.config(fg=entry_bg_color, bg=entry_fg_color)
 
         # Apply text widget colors
         for text_widget in [search_listbox, view_listbox]:
