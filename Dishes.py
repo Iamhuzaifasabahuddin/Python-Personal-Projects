@@ -1,15 +1,26 @@
 import requests
-from py_edamam import Edamam
 
-account = Edamam(recipes_appid="bc8e03f2", recipes_appkey="d263a2d7110848ad2682bf7e99bd826f")
+# account = PyEdamam(recipes_appid="bc8e03f2", recipes_appkey="d263a2d7110848ad2682bf7e99bd826f")
+app_id = 'bc8e03f2'
+app_key = 'd263a2d7110848ad2682bf7e99bd826f'
+search_query = "onion and chicken"
 
-recipes_listed = account.search_recipe("peas")
+url = f"https://api.edamam.com/search"
+params = {
+    "app_id": app_id,
+    "app_key": app_key,
+    "q": search_query
+}
+response = requests.get(url, params=params)
+data = response.json()
 
-for index, recipe in enumerate(recipes_listed):
-    print(f"Recipe: {recipes_listed['hits'][index]['recipe']['label']}")
-    print("Ingredients are listed below")
-    ingredients = recipes_listed['hits'][index]['recipe']['ingredientLines']
-    url = recipes_listed['hits'][index]['recipe']['url']
-    for i, ing in enumerate(ingredients, start=1):
-        print(f"{i}) {ing}")
-    print(f"Full detailed recipe: {url}\n")
+for recipe in data['hits']:
+    recipe = recipe['recipe']
+    print("Title:", recipe['label'])
+    print("Calories:", recipe['calories'])
+    print("Cautions:", recipe['cautions'])
+    print("Diet Labels:", recipe['dietLabels'])
+    print("Health Labels:", recipe['healthLabels'])
+    print("URL:", recipe['url'])
+    print("Ingredients:", recipe['ingredientLines'])
+    print()

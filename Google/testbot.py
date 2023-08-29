@@ -68,8 +68,13 @@ async def inspire(ctx):
 
 
 @bot.command()
-async def google_search(ctx, query, nums, sort=None):
-    results = Search(query, nums, sort)
+async def google_search(ctx, *, query_and_params):
+    params = query_and_params.split()
+    query = params[0]
+    nums = int(params[1]) if len(params) > 1 else 5  # Default value if not provided
+    sorting = params[2] if len(params) > 2 else None  # Default value if not provided
+
+    results = Search(query, nums, sorting)
     output_msg = "\n".join(results)
     await ctx.send("Showing results:\n" + output_msg)
 
