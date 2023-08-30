@@ -1,6 +1,8 @@
+import json
+
 import requests
 
-api_key = "78d640476dee416ef3231ec99561e834"
+api_key = json.load(open("Weather_toke.json", 'r'))["TOKEN"]
 url = "http://api.openweathermap.org/data/2.5/weather?"
 
 params = {
