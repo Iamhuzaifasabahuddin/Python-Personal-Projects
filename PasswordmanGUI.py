@@ -103,7 +103,7 @@ def view(view_listbox: tk.scrolledtext.ScrolledText, message_label: tk.Label, to
         connection = sqlite3.connect('Passwords.db')
         cursor = connection.cursor()
 
-        results = cursor.execute("SELECT * FROM manager")
+        results = cursor.execute("SELECT * FROM manager ORDER BY USERNAME ASC")
         results = results.fetchall()
         if not results:
             show_message(message_label, "No Accounts To Display", 'red')
