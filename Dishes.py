@@ -1,6 +1,5 @@
 import requests
 
-# account = PyEdamam(recipes_appid="bc8e03f2", recipes_appkey="d263a2d7110848ad2682bf7e99bd826f")
 app_id = 'bc8e03f2'
 app_key = 'd263a2d7110848ad2682bf7e99bd826f'
 search_query = "onion and chicken"
