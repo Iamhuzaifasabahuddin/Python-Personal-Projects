@@ -23,15 +23,18 @@ def experiment(hat, expected_balls, num_balls_drawn, num_experiments):
     for _ in range(num_experiments):
         hat_copy = copy.deepcopy(hat)
         drawn_balls = hat_copy.draw(num_balls_drawn)
-        print(drawn_balls)
 
         success = True
         for color, count in expected_balls.items():
             if drawn_balls.count(color) < count:
+                # or use success all(drawn_balls.count(color)>=color for color, count in expected_balls.items())
+                # if success:
+                #   nums_success +=1
                 success = False
                 break
         if success:
             num_success += 1
+            print(num_success)
 
     probability = num_success / num_experiments
     return probability
@@ -40,6 +43,6 @@ def experiment(hat, expected_balls, num_balls_drawn, num_experiments):
 hat = Hat(blue=5, red=4, green=2)
 expected_balls = {"red": 1, "green": 2}
 num_balls_drawn = 4
-num_experiments = 2
+num_experiments = 10
 probability = experiment(hat, expected_balls, num_balls_drawn, num_experiments)
 print(f"Probability: {probability:.4f}")
