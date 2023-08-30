@@ -11,7 +11,7 @@ def add_time(start, duration, day=None):
 
     # if period == 'PM':
     #     start_hour += 12
-    start_time = dt.datetime(1, 1, 1, start_hour, start_minute)
+    # start_time = dt.datetime(1, 1, 1, start_hour, start_minute)
     # duration_time = dt.timedelta(hours=duration_hour, minutes=duration_minute)
 
     new_minute = (start_minute + duration_minute) % 60
