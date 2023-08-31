@@ -2,7 +2,8 @@ import datetime
 import json
 import tkinter as tk
 from tkinter import scrolledtext, messagebox, ttk
-
+from PIL import Image, ImageTk
+import io
 import requests
 from ttkthemes.themed_style import ThemedStyle
 
@@ -25,7 +26,7 @@ def centered(window, width, height):
     return window.geometry(f"{width}x{height}+{screen_centered_width}+{screen_centered_height}")
 
 
-def weather(location, listbox: tk.scrolledtext.ScrolledText, Weather_entry, message_label, weather_toggle):
+def weather(location, listbox: tk.scrolledtext.ScrolledText, message_label, weather_toggle):
     api_key = json.load(open("Weather_token.json", 'r'))["TOKEN"]
     weather_url = "http://api.openweathermap.org/data/2.5/weather?"
 
@@ -50,13 +51,29 @@ def weather(location, listbox: tk.scrolledtext.ScrolledText, Weather_entry, mess
             feels_like = results["main"]["feels_like"]
             feels_like_celsius, feels_like_fahrenheit = convert(feels_like)
             celsius, fahrenheit = convert(temperature)
-            listbox.tag_configure("custom_font", font=("Quicksand", 20))
-            listbox.insert(tk.END, f"City: {location.capitalize()}\n\n", "custom_font")
-            listbox.insert(tk.END, f"Weather: {weather_desc}\nTemperature: {celsius:.2f}°C, {fahrenheit:.2f}°F\n"
-                                   f"Feels like {feels_like_celsius:.2f}°C, {feels_like_fahrenheit:.2f}°F\n"
-                                   f"Humidty {humidity}%\n", "custom_font")
-            listbox.pack(pady=10)
-            weather_toggle(False)
+            icon_code = results["weather"][0]["icon"]
+            icon_url = f"http://openweathermap.org/img/wn/{icon_code}.png"
+
+            response_icon = requests.get(icon_url, stream=True)
+            if response_icon.status_code == 200:  # code for API Success
+                icon_data = response_icon.content
+                icon_image = Image.open(io.BytesIO(icon_data))
+                icon_image = icon_image.resize((70, 70))  # Adjust the size of the icon as needed
+                icon_photo = ImageTk.PhotoImage(icon_image)
+
+                listbox.insert(tk.END, f"City: {location.capitalize()}\n\n", "custom_font")
+
+                # Store the icon_photo as an attribute of the listbox widget
+                listbox.icon_photo = icon_photo
+
+                listbox.image_create(tk.END, image=icon_photo)
+                listbox.insert(tk.END, f"\nWeather: {weather_desc}\nTemperature: {celsius:.2f}°C, {fahrenheit:.2f}°F\n"
+                                       f"Feels like {feels_like_celsius:.2f}°C, {feels_like_fahrenheit:.2f}°F\n"
+                                       f"Humidity {humidity}%\n", "custom_font")
+                listbox.pack(pady=10)
+                weather_toggle(False)
+            else:
+                print("Icon not found")
 
 
 def forecast(location, message_label, forecast_listbox: tk.scrolledtext.ScrolledText, forecast_toggle):
@@ -93,7 +110,6 @@ def forecast(location, message_label, forecast_listbox: tk.scrolledtext.Scrolled
                 }
             )
         show_message(message_label, text="Getting Forecast...", colour="green")
-        forecast_listbox.tag_configure("custom_font", font=("Quicksand", 20))
         forecast_listbox.insert(tk.END, f"Forecast For The Next 5 Days For {location}:\n\n", "custom_font")
         for values in daily_forecast:
             forecast_listbox.insert(tk.END, f"Day: {values['day']}\nMinimum Temperature: {values['min_temp']}\n"
@@ -118,18 +134,18 @@ def gui():
     Weather_label = tk.Label(frame_main, text="Enter a city:", font=("Quicksand", 25, "italic"))
     Weather_entry = tk.Entry(frame_main, font=("Quicksand", 15))
     Weather_button = tk.Button(frame_main, text="ADD", command=lambda: weather(Weather_entry.get(),
-                                                                               Weather_box, Weather_entry,
+                                                                               Weather_box,
                                                                                Weather_message_label, weather_toggle)
                                , font=("Merriweather", 15))
 
     Weather_message_label = tk.Label(frame_main, text="", font=("Quicksand", 15, "italic"))
-    Weather_box = scrolledtext.ScrolledText(frame_main, wrap=tk.WORD, width=60, height=20)
+    Weather_box = scrolledtext.ScrolledText(frame_main, wrap=tk.WORD, width=60, height=20, background="grey")
 
     # Forecast fields
     forecast_label = tk.Label(frame_main, text="Enter a city: ", font=("Quicksand", 25, "italic"))
     forecast_message_label = tk.Label(frame_main, text="", font=("Quicksand", 15, "italic"))
     forecast_entry = tk.Entry(frame_main, font=("Quicksand", 15))
-    forecast_box = scrolledtext.ScrolledText(frame_main, wrap=tk.WORD, width=60, height=20)
+    forecast_box = scrolledtext.ScrolledText(frame_main, wrap=tk.WORD, width=60, height=20, background="grey")
     forecast_button = tk.Button(frame_main, text="Forecast", command=lambda:
     forecast(forecast_entry.get(), forecast_message_label, forecast_box, forecast_toggle), font=("Merriweather", 15))
 
@@ -148,6 +164,7 @@ def gui():
             Weather_button.pack(pady=10)
             Weather_box.delete("1.0", tk.END)
             Weather_box.config(state="normal")
+            Weather_box.tag_configure("custom_font", font=("Quicksand", 20), foreground="white")
         else:
             Weather_button.pack_forget()
             Weather_label.pack_forget()
@@ -161,10 +178,14 @@ def gui():
             forecast_entry.pack(pady=10)
             forecast_button.pack(pady=10)
             forecast_box.delete("1.0", tk.END)
+            forecast_box.config(state="normal")
+            forecast_box.config(state="normal")
+            forecast_box.tag_configure("custom_font", font=("Quicksand", 20), foreground="White")
         else:
             forecast_entry.pack_forget()
             forecast_label.pack_forget()
             forecast_button.pack_forget()
+            forecast_box.config(state="disabled")
             forecast_entry.delete(0, tk.END)
 
     def get_value(event):
