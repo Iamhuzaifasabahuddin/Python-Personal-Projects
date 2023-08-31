@@ -123,45 +123,48 @@ def view(view_listbox: tk.scrolledtext.ScrolledText, message_label: tk.Label, to
 def edit(search: str, search_2: str, account: str, username: str, password: str, message_label: tk.Label,
          toggle_edit: Callable, reset: Callable):
     """
-       Edit an existing account's details.
+    Edit an existing account's details.
 
-       Args:
-           search (str): Account to search for.
-           search_2 (str): Account Username to search for.
-           account (str): New account name.
-           username (str): New username.
-           password (str): New password.
-           message_label (tk.Label): The label to display messages.
-           toggle_edit (function): Function to toggle edit fields visibility.
-           reset (Function): Function to reset the main combobox
-       """
+    Args:
+        search (str): Account to search for.
+        search_2 (str): Account Username to search for.
+        account (str): New account name.
+        username (str): New username.
+        password (str): New password.
+        message_label (tk.Label): The label to display messages.
+        toggle_edit (function): Function to toggle edit fields visibility.
+        reset (Function): Function to reset the main combobox
+    """
     if search.strip() == "" or account.strip() == "" or username.strip() == "" or password.strip() == "":
         show_message(message_label, "Fields Cannot Be Empty", "red")
         return
+
     connection = sqlite3.connect("Passwords.db")
     cursor = connection.cursor()
 
-    result = cursor.execute("SELECT USERNAME, ACCOUNT, PASSWORD FROM manager WHERE USERNAME=? AND ACCOUNT=?",
-                            (search.title(), search_2.title(),))
+    existing_data = cursor.execute("SELECT USERNAME, ACCOUNT, PASSWORD FROM manager WHERE USERNAME=? AND ACCOUNT=?",
+                                   (search.title(), search_2.title())).fetchone()
 
-    existing_data = result.fetchone()
     if not existing_data:
         if not hasattr(edit, "account_not_found_displayed"):
             show_message(message_label, "Account not found", "red")
             edit.account_not_found_displayed = True
     else:
         if not hasattr(edit, "edit_displayed"):
-            new_account = account.strip() if account.strip() else existing_data[1]
             new_username = username.strip() if username.strip() else existing_data[0]
+            new_account = account.strip() if account.strip() else existing_data[1]
             new_password = password.strip() if password.strip() else existing_data[2]
-            cursor.execute("UPDATE manager SET ACCOUNT=?, USERNAME=?, PASSWORD=? WHERE USERNAME=?",
-                           (new_account.title(), new_username.title(), new_password, search))
-            connection.commit()
-            toggle_edit(False)
-            if not hasattr(edit, "account_updated_displayed"):
+
+            if not search_database(new_username, new_account):
+                cursor.execute("UPDATE manager SET ACCOUNT=?, USERNAME=?, PASSWORD=? WHERE USERNAME=? AND ACCOUNT=?",
+                               (new_account.title(), new_username.title(), new_password, search, search_2))
+                connection.commit()
                 show_message(message_label, "Account updated", "green")
                 edit.account_updated_displayed = True
+            else:
+                show_message(message_label, "Account details clash", "red")
 
+    toggle_edit(False)
     reset()
     connection.close()
 
@@ -218,26 +221,30 @@ def upload(message_label: tk.Label, toggle_upload: Callable, reset: Callable):
             toggle_upload (function): Function to toggle upload fields visibility.
             reset (Function): Function to reset the main combobox
     """
+    global creds
     toggle_upload(False)
-    SCOPES = ['https://www.googleapis.com/auth/drive']
-    creds = None
-    # The file token.json stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
-    if os.path.exists(r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\token3.json'):
-        creds = Credentials.from_authorized_user_file(
-            r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\token3.json', SCOPES)
-    # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\Drive_Credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-        # Save the credentials for the next run
-        with open(r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\token3.json', 'w') as token:
-            token.write(creds.to_json())
+    try:
+        SCOPES = ['https://www.googleapis.com/auth/drive']
+        creds = None
+        # The file token.json stores the user's access and refresh tokens, and is
+        # created automatically when the authorization flow completes for the first
+        # time.
+        if os.path.exists(r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\token3.json'):
+            creds = Credentials.from_authorized_user_file(
+                r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\token3.json', SCOPES)
+        # If there are no (valid) credentials available, let the user log in.
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\Drive_Credentials.json', SCOPES)
+                creds = flow.run_local_server(port=0)
+            # Save the credentials for the next run
+            with open(r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\token3.json', 'w') as token:
+                token.write(creds.to_json())
+    except Exception as error:
+        show_message(message_label, text=f"Credentials Error! {error}", color="red")
 
     try:
         service = build('drive', 'v3', credentials=creds)
@@ -372,6 +379,7 @@ def master(password: str, message_label: tk.Label, master_entry: tk.Entry, optio
             toggle_search(False)
             toggle_upload(False)
             toggle_view(False)
+            toggle_master(False)
             if not hasattr(master, "auth_failed_displayed"):
                 show_message(message_label, "Authorization failed", "red")
                 master.auth_failed_displayed = True
