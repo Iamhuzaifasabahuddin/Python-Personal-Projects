@@ -28,10 +28,6 @@ else:
     print(f"Wind Speed: {wind_speed} m/s")
     print(feels)
 
-import json
-import datetime
-import requests
-
 
 def forecast(location):
     api_key = json.load(open("Weather_token.json", 'r'))["TOKEN"]
@@ -54,14 +50,13 @@ def forecast(location):
     daily_forecast = []
     forecast_response = requests.get(forecast_url, params=params)
     results = forecast_response.json()
-    for data2 in results['list'][:5]:  # Use 'list' instead of 'daily'
-        print(data2['dt'])
+    for data in results['list'][:40:8]:  # Use [::8] to select every 8th entry for 5 days
         daily_forecast.append(
             {
-                "day": datetime.datetime.fromtimestamp(data2['dt']).strftime("%A"),
-                "min_temp": f"{data2['main']['temp_min'] - 273.15:.2f}",  # Access min temp using main['temp_min']
-                "max_temp": f"{data2['main']['temp_max'] - 273.15:.2f}",  # Access max temp using main['temp_max']
-                "description": data2["weather"][0]['description']
+                "day": datetime.datetime.fromtimestamp(data['dt']).strftime("%A"),
+                "min_temp": f"{data['main']['temp_min'] - 273.15:.2f}°C",
+                "max_temp": f"{data['main']['temp_max'] - 273.15:.2f}°C",
+                "description": data["weather"][0]['description']
             }
         )
     return daily_forecast
