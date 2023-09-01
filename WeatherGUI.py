@@ -21,7 +21,7 @@ def convert(temperature):
 
 
 def centered(window, width, height):
-    screen_width, screen_height = window.winfo_screenwidth(), window.winfo_screenheight()  # Corrected this line
+    screen_width, screen_height = window.winfo_screenwidth(), window.winfo_screenheight()
     screen_centered_width, screen_centered_height = (screen_width - width) // 2, (screen_height - height) // 2
     return window.geometry(f"{width}x{height}+{screen_centered_width}+{screen_centered_height}")
 
