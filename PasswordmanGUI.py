@@ -76,13 +76,9 @@ def add(username: Callable, account: str, password: str, message_label: tk.Label
                                                                    account.title(), password))
             connection.commit()
             toggle_add_fields(False)
-            if not hasattr(add, "account_added_displayed"):
-                show_message(message_label, "Account added successfully!", "green")
-                add.account_added_displayed = True
+            show_message(message_label, "Account added successfully!", "green")
         else:
-            if not hasattr(add, "account_exists_displayed"):
-                show_message(message_label, "Account Already Exists", "red")
-                add.account_exists_displayed = True
+            show_message(message_label, "Account Already Exists", "red")
     reset()
 
 
@@ -99,29 +95,26 @@ def view(view_listbox: tk.scrolledtext.ScrolledText, message_label: tk.Label, to
          toggle_view (function): Function to toggle view fields visibility.
          reset (Function): Function to reset the main combobox.
      """
-    if not hasattr(view, "view_displayed"):
-        connection = sqlite3.connect('Passwords.db')
-        cursor = connection.cursor()
+    connection = sqlite3.connect('Passwords.db')
+    cursor = connection.cursor()
 
-        results = cursor.execute("SELECT * FROM manager ORDER BY USERNAME ASC")
-        results = results.fetchall()
-        if not results:
-            show_message(message_label, "No Accounts To Display", 'red')
-        else:
-            show_message(message_label, "Showing Account / Accounts for 60 Seconds", "green", duration=60000)
-            for index, values in enumerate(results, start=1):
-                view_listbox.insert(tk.END, f"Account {index}\n\n")
-                view_listbox.insert(tk.END, f"ACCOUNT: {values[0]}\nUSERNAME: {values[1]}\nPASSWORD: {values[2]}\n\n")
-            view_listbox.pack()
-            toggle_view(False)
-            reset()
-        connection.close()
-
-        view.view_displayed = True  # Set the flag after displaying the view
+    results = cursor.execute("SELECT * FROM manager ORDER BY USERNAME ASC")
+    results = results.fetchall()
+    if not results:
+        show_message(message_label, "No Accounts To Display", 'red')
+    else:
+        show_message(message_label, "Showing Account / Accounts for 60 Seconds", "green", duration=60000)
+        for index, values in enumerate(results, start=1):
+            view_listbox.insert(tk.END, f"Account {index}\n\n")
+            view_listbox.insert(tk.END, f"ACCOUNT: {values[0]}\nUSERNAME: {values[1]}\nPASSWORD: {values[2]}\n\n")
+        view_listbox.pack()
+        toggle_view(False)
+        reset()
+    connection.close()
 
 
 def edit(search: str, search_2: str, account: str, username: str, password: str, message_label: tk.Label,
-         toggle_edit: Callable, reset: Callable):
+         toggle_edit: Callable, toggle_edit_2: Callable, reset: Callable):
     """
     Edit an existing account's details.
 
@@ -133,12 +126,12 @@ def edit(search: str, search_2: str, account: str, username: str, password: str,
         password (str): New password.
         message_label (tk.Label): The label to display messages.
         toggle_edit (function): Function to toggle edit fields visibility.
+        toggle_edit_2 (function): Function that toggles off the search and search2 fields
         reset (Function): Function to reset the main combobox
     """
     if search.strip() == "" or account.strip() == "" or username.strip() == "" or password.strip() == "":
         show_message(message_label, "Fields Cannot Be Empty", "red")
         return
-
     connection = sqlite3.connect("Passwords.db")
     cursor = connection.cursor()
 
@@ -146,24 +139,20 @@ def edit(search: str, search_2: str, account: str, username: str, password: str,
                                    (search.title(), search_2.title())).fetchone()
 
     if not existing_data:
-        if not hasattr(edit, "account_not_found_displayed"):
-            show_message(message_label, "Account not found", "red")
-            edit.account_not_found_displayed = True
+        show_message(message_label, "Account not found", "red")
     else:
-        if not hasattr(edit, "edit_displayed"):
-            new_username = username.strip() if username.strip() else existing_data[0]
-            new_account = account.strip() if account.strip() else existing_data[1]
-            new_password = password.strip() if password.strip() else existing_data[2]
-
-            if not search_database(new_username, new_account):
-                cursor.execute("UPDATE manager SET ACCOUNT=?, USERNAME=?, PASSWORD=? WHERE USERNAME=? AND ACCOUNT=?",
-                               (new_account.title(), new_username.title(), new_password, search, search_2))
-                connection.commit()
-                show_message(message_label, "Account updated", "green")
-                edit.account_updated_displayed = True
-            else:
-                show_message(message_label, "Account details clash", "red")
-
+        toggle_edit_2()
+        new_username = username.strip() if username.strip() else existing_data[0]
+        new_account = account.strip() if account.strip() else existing_data[1]
+        new_password = password.strip() if password.strip() else existing_data[2]
+        if search_database(new_username.title(), new_account.title()):
+            show_message(message_label, "Account details clash", "red")
+        else:
+            cursor.execute("UPDATE manager SET ACCOUNT=?, USERNAME=?, PASSWORD=? WHERE USERNAME=? AND ACCOUNT=?",
+                           (new_account.title(), new_username.title(), new_password, search, search_2))
+            connection.commit()
+            show_message(message_label, "Account updated", "green")
+    toggle_edit_2()
     toggle_edit(False)
     reset()
     connection.close()
@@ -194,16 +183,12 @@ def delete(Account: str, Username: str, message_label: tk.Label, toggle_delete: 
     results = results.fetchall()
 
     if not results:
-        if not hasattr(delete, "account_not_found_displayed"):
-            show_message(message_label, "Account does not exist!", "red")
-            delete.account_not_found_displayed = True
+        show_message(message_label, "Account does not exist!", "red")
     else:
-        if not hasattr(delete, "account_deleted_displayed"):
-            cursor.execute("DELETE FROM manager WHERE USERNAME=?", (Account.strip().title(),))
-            connection.commit()
-            toggle_delete(False)
-            show_message(message_label, "Account deleted", "green")
-            delete.account_deleted_displayed = True
+        cursor.execute("DELETE FROM manager WHERE USERNAME=?", (Account.strip().title(),))
+        connection.commit()
+        toggle_delete(False)
+        show_message(message_label, "Account deleted", "green")
 
     reset()
     connection.close()
@@ -320,21 +305,19 @@ def exist(username: str, message_label: tk.Label, toggle_search: Callable, searc
         if not result:
             show_message(message_label, "Account doesnt exist", "red")
         else:
-            if not hasattr(exist, "search_results_displayed"):
-                show_message(message_label, "Showing Account / Accounts for 60 Seconds", "green", duration=60000)
-                for index, values in enumerate(result, start=1):
-                    search_listbox.insert(tk.END, f"Account {index}\n\n")
-                    search_listbox.insert(tk.END,
-                                          f"ACCOUNT: {values[0]}\nUSERNAME: {values[1]}\nPASSWORD: {values[2]}\n\n")
-                search_listbox.pack()
-                exist.search_results_displayed = True  # Set the flag to True after displaying the results
+            show_message(message_label, "Showing Account / Accounts for 60 Seconds", "green", duration=60000)
+            for index, values in enumerate(result, start=1):
+                search_listbox.insert(tk.END, f"Account {index}\n\n")
+                search_listbox.insert(tk.END,
+                                      f"ACCOUNT: {values[0]}\nUSERNAME: {values[1]}\nPASSWORD: {values[2]}\n\n")
+            search_listbox.pack()
             toggle_search(False)
         reset()
 
 
 def master(password: str, message_label: tk.Label, master_entry: tk.Entry, option: tk.StringVar,
            toggle_master: Callable,
-           toggle_search: Callable, toggle_upload: Callable, toggle_view: Callable,
+           toggle_search: Callable, toggle_upload: Callable, toggle_view: Callable, toggle_Edit_2: Callable,
            reset: Callable):
     """
        Validate the master password and perform corresponding actions.
@@ -363,9 +346,6 @@ def master(password: str, message_label: tk.Label, master_entry: tk.Entry, optio
     else:
         if password == master_password:
             toggle_master(False)
-            if not hasattr(master, "auth_successful_displayed"):
-                show_message(message_label, "Authorization successful", "green")
-                master.auth_successful_displayed = True
             show_message(message_label, "Authorization successful", "green")
             if option == "Search":
                 toggle_search(True)
@@ -380,10 +360,14 @@ def master(password: str, message_label: tk.Label, master_entry: tk.Entry, optio
             toggle_upload(False)
             toggle_view(False)
             toggle_master(False)
-            if not hasattr(master, "auth_failed_displayed"):
-                show_message(message_label, "Authorization failed", "red")
-                master.auth_failed_displayed = True
+            show_message(message_label, "Authorization failed", "red")
             reset()
+
+
+def centered(window, width, height):
+    screen_width, screen_height = window.winfo_screenwidth(), window.winfo_screenheight()  # Corrected this line
+    screen_centered_width, screen_centered_height = (screen_width - width) // 2, (screen_height - height) // 2
+    return window.geometry(f"{width}x{height}+{screen_centered_width}+{screen_centered_height}")
 
 
 def gui():
@@ -396,7 +380,7 @@ def gui():
     """
     window = tk.Tk()
     window.title("Password manager")
-    window.geometry("600x600")
+    centered(window, 700, 700)
     icon = tk.PhotoImage(file="password.png")
     window.iconphoto(True, icon)
     style = ThemedStyle(window)
@@ -460,7 +444,7 @@ def gui():
     master_button = tk.Button(window, text="Check",
                               command=lambda: master(master_entry.get(), master_main_label, master_entry, items.get(),
                                                      toggle_master,
-                                                     toggle_search, toggle_upload, toggle_view, reset),
+                                                     toggle_search, toggle_upload, toggle_view, toggle_edit_2, reset),
                               font=("Nunito", 15))
 
     # Search Function Fields
@@ -488,7 +472,7 @@ def gui():
     edit_button = tk.Button(window, text="Edit",
                             command=lambda: edit(edit_search.get(), edit_entry_2.get(), edit_entry_account.get(),
                                                  edit_entry_username.get(),
-                                                 edit_entry_password.get(), edit_main_label, toggle_edit,
+                                                 edit_entry_password.get(), edit_main_label, toggle_edit, toggle_edit_2,
                                                  reset), font=("Nunito", 15))
 
     # Delete Function Fields
@@ -565,6 +549,7 @@ def gui():
             master_entry.pack_forget()
             master_label.pack_forget()
             master_button.pack_forget()
+            master_entry.delete(0, tk.END)
 
     # Used to unpack all search fields
     def toggle_search(enable):
@@ -599,21 +584,29 @@ def gui():
             edit_entry_password.pack(pady=5)
             edit_button.pack(pady=10)
         else:
-            edit_label.pack_forget()
-            edit_label_2.pack_forget()
-            edit_entry_2.pack_forget()
+            # edit_label.pack_forget()
+            # edit_label_2.pack_forget()
+            # edit_entry_2.pack_forget()
+            # edit_search.pack_forget()
             edit_label_acc.pack_forget()
-            edit_search.pack_forget()
             edit_label_user.pack_forget()
             edit_label_pass.pack_forget()
             edit_entry_account.pack_forget()
             edit_entry_username.pack_forget()
             edit_entry_password.pack_forget()
             edit_button.pack_forget()
-            edit_entry_account.delete(0, tk.END)
+            edit_search.delete(0, tk.END)
             edit_entry_2.delete(0, tk.END)
+            edit_entry_account.delete(0, tk.END)
             edit_entry_username.delete(0, tk.END)
             edit_entry_password.delete(0, tk.END)
+
+    def toggle_edit_2():
+        """Toggles search fields and main account, username, password fields"""
+        edit_label.pack_forget()
+        edit_search.pack_forget()
+        edit_label_2.pack_forget()
+        edit_entry_2.pack_forget()
 
     # Used to unpack all delete fields
     def toggle_delete(enable):
@@ -670,28 +663,34 @@ def gui():
             toggle_edit(False)
             toggle_upload(False)
             toggle_search(False)
+            toggle_edit_2()
         elif selected_value == "Add":
             toggle_add_fields(True)
             toggle_edit(False)
+            toggle_edit_2()
             toggle_delete(False)
             toggle_search(False)
             toggle_master(False)
             view_label_main.pack_forget()
             view_listbox.pack_forget()
+            search_main_label.pack_forget()
             search_listbox.pack_forget()
         elif selected_value == "View All":
             toggle_master(True)
             toggle_search(False)
             toggle_delete(False)
             toggle_edit(False)
+            toggle_edit_2()
             toggle_add_fields(False)
             toggle_view(False)
+            search_main_label.pack_forget()
             search_listbox.pack_forget()
         elif selected_value == "Search":
             toggle_master(True)
             toggle_search(False)
             toggle_delete(False)
             toggle_edit(False)
+            toggle_edit_2()
             toggle_add_fields(False)
             view_listbox.pack_forget()
             view_label_main.pack_forget()
@@ -699,8 +698,10 @@ def gui():
             toggle_delete(True)
             toggle_search(False)
             toggle_edit(False)
+            toggle_edit_2()
             toggle_add_fields(False)
             toggle_master(False)
+            search_main_label.pack_forget()
             view_label_main.pack_forget()
             view_listbox.pack_forget()
             search_listbox.pack_forget()
@@ -710,6 +711,7 @@ def gui():
             toggle_delete(False)
             toggle_master(False)
             toggle_add_fields(False)
+            search_main_label.pack_forget()
             view_label_main.pack_forget()
             view_listbox.pack_forget()
             search_listbox.pack_forget()
@@ -717,8 +719,10 @@ def gui():
             toggle_search(False)
             toggle_delete(False)
             toggle_edit(False)
+            toggle_edit_2()
             toggle_master(True)
             toggle_add_fields(False)
+            search_main_label.pack_forget()
             view_label_main.pack_forget()
             view_listbox.pack_forget()
             search_listbox.pack_forget()
