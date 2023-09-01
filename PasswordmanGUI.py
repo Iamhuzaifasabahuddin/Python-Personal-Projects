@@ -19,18 +19,21 @@ def search_database(username: str, account: str) -> bool:
     connection = sqlite3.connect("Passwords.db")
     cursor = connection.cursor()
 
-    if username and account:
-        result = cursor.execute("SELECT USERNAME, ACCOUNT FROM manager WHERE USERNAME=? AND ACCOUNT=?",
-                                (username, account))
-    elif username:
-        result = cursor.execute("SELECT USERNAME, ACCOUNT FROM manager WHERE USERNAME=?", (username,))
-    else:
-        return False  # If neither username nor account is provided, return False
+    try:
+        if username and account:
+            result = cursor.execute("SELECT USERNAME, ACCOUNT FROM manager WHERE USERNAME=? AND ACCOUNT=?",
+                                    (username, account))
+        elif username:
+            result = cursor.execute("SELECT USERNAME, ACCOUNT FROM manager WHERE USERNAME=?", (username,))
+        else:
+            return False  # If neither username nor account is provided, return False
 
-    if result.fetchall():
-        return True  # Account exists
-    else:
-        return False  # Account doesn't exist
+        return bool(result.fetchall())
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+        return False
+    finally:
+        connection.close()
 
 
 # main funcs
@@ -77,6 +80,7 @@ def add(username: Callable, account: str, password: str, message_label: tk.Label
             show_message(message_label, "Account added successfully!", "green")
         else:
             show_message(message_label, "Account Already Exists", "red")
+    toggle_add_fields(False)
     reset()
 
 
