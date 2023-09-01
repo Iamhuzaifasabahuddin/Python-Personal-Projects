@@ -65,9 +65,7 @@ def add(username: Callable, account: str, password: str, message_label: tk.Label
        """
     selected_account_value = username()
     if selected_account_value.strip() == "" or account.strip() == "" or password.strip() == "":
-        if not hasattr(add, "empty_fields_displayed"):
-            show_message(message_label, "Username or Account or Password cannot be empty", "red")
-            add.empty_fields_displayed = True
+        show_message(message_label, "Username or Account or Password cannot be empty", "red")
     else:
         if not search_database(selected_account_value.title(), account.title()):
             connection = sqlite3.connect('Passwords.db')
@@ -340,9 +338,7 @@ def master(password: str, message_label: tk.Label, master_entry: tk.Entry, optio
     with open("master.txt", "r") as file:
         master_password = file.readline().strip()
     if password.strip() == "":
-        if not hasattr(master, "password_empty_displayed"):
-            show_message(message_label, "Please enter your password!", "red")
-            master.password_empty_displayed = True
+        show_message(message_label, "Please enter your password!", "red")
     else:
         if password == master_password:
             toggle_master(False)
