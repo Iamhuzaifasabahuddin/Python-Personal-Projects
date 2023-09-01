@@ -1,7 +1,11 @@
 import datetime
 import json
+import logging
 import tkinter as tk
+import tkinter.scrolledtext
 from tkinter import scrolledtext, messagebox, ttk
+from typing import Callable
+
 from PIL import Image, ImageTk
 import io
 import requests
@@ -9,29 +13,71 @@ from ttkthemes.themed_style import ThemedStyle
 
 
 def show_message(message_label, text, colour, duration=2000):
+    """
+    Display a message on a label widget with specified text and color, and then hide it after a specified duration.
+
+    Args:
+        message_label (tk.Label): The label widget to display the message.
+        text (str): The text message to display.
+        colour (str): The color (foreground) of the text.
+        duration (int, optional): The duration in milliseconds for which the message should be displayed. Default is 2000ms (2 seconds).
+    """
     message_label.config(text=text, fg=colour)
     message_label.pack()
     message_label.after(duration, lambda: message_label.pack_forget())
+    logging.info(text)
 
 
 def convert(temperature):
+    """
+    Convert a temperature from Kelvin to Celsius and Fahrenheit.
+
+    Args:
+        temperature (float): The temperature in Kelvin.
+
+    Returns:
+        tuple: A tuple containing two floats representing the temperature in Celsius and Fahrenheit, respectively.
+    """
     celsius = temperature - 273.15
     fahrenheit = (celsius * 9 / 5) + 32
     return celsius, fahrenheit
 
 
 def centered(window, width, height):
+    """
+    Center a tkinter window on the screen.
+
+    Args:
+        window (tk.Tk): The tkinter window to center.
+        width (int): The width of the window.
+        height (int): The height of the window.
+
+    Returns:
+        None
+    """
     screen_width, screen_height = window.winfo_screenwidth(), window.winfo_screenheight()
     screen_centered_width, screen_centered_height = (screen_width - width) // 2, (screen_height - height) // 2
     return window.geometry(f"{width}x{height}+{screen_centered_width}+{screen_centered_height}")
 
 
 def weather(location, listbox: tk.scrolledtext.ScrolledText, message_label, weather_toggle):
+    """
+    Retrieve and display weather information for a given location.
+
+    Args:
+        location (str): The name of the city for which weather information is requested.
+        listbox (tk.scrolledtext.ScrolledText): The widget to display the weather information.
+        message_label (tk.Label): The label widget for displaying messages.
+        weather_toggle (function): A function to toggle the weather interface.
+
+    Returns:
+        None
+    """
     api_key = json.load(open("Weather_token.json", 'r'))["TOKEN"]
     weather_url = "http://api.openweathermap.org/data/2.5/weather?"
 
     params = {
-        "q": location.capitalize(),
+        "q": location.title(),
         "appid": api_key
     }
 
@@ -46,10 +92,10 @@ def weather(location, listbox: tk.scrolledtext.ScrolledText, message_label, weat
             weather_toggle(False)
         else:
             show_message(message_label, text="Getting Weather....", colour="green")
-            weather_desc = results["weather"][0]["description"]
-            temperature = results["main"]["temp"]
-            humidity = results["main"].get("humidity")
-            feels_like = results["main"]["feels_like"]
+            weather_desc = results["weather"][0].get("description", "N/A")
+            temperature = results["main"].get("temp", "N/A")
+            humidity = results["main"].get("humidity", "N/A")
+            feels_like = results["main"].get("feels_like", "N/A")
             feels_like_celsius, feels_like_fahrenheit = convert(feels_like)
             celsius, fahrenheit = convert(temperature)
             icon_code = results["weather"][0]["icon"]
@@ -78,6 +124,19 @@ def weather(location, listbox: tk.scrolledtext.ScrolledText, message_label, weat
 
 
 def forecast(location, days, message_label, forecast_listbox: tk.scrolledtext.ScrolledText, forecast_toggle):
+    """
+    Retrieve and display weather forecast information for a given location.
+
+    Args:
+        location (str): The name of the city for which the weather forecast is requested.
+        days (str): The number of days for the forecast.
+        message_label (tk.Label): The label widget for displaying messages.
+        forecast_listbox (tk.scrolledtext.ScrolledText): The widget to display the forecast information.
+        forecast_toggle (function): A function to toggle the forecast interface.
+
+    Returns:
+        None
+    """
     api_key = json.load(open("Weather_token.json", 'r'))["TOKEN"]
     forecast_url = "http://api.openweathermap.org/data/2.5/forecast?"
     weather_url = "http://api.openweathermap.org/data/2.5/weather?"
@@ -86,7 +145,7 @@ def forecast(location, days, message_label, forecast_listbox: tk.scrolledtext.Sc
         show_message(message_label, text="Enter a City!", colour="red")
         return
 
-    if not days or not days.isdigit() or days < 0:
+    if not days or not days.isdigit() or int(days) < 0:
         show_message(message_label, text="Invalid input. Defaulting to 5 days.", colour="red")
     else:
         days = min(int(days), 5)  # Limit days to a maximum of 5
@@ -137,6 +196,88 @@ def forecast(location, days, message_label, forecast_listbox: tk.scrolledtext.Sc
             forecast_toggle(False)
 
 
+def weather_and_forecast(location: str, days: int, wflistbox: tkinter.scrolledtext.ScrolledText,
+                         message_label: tk.Label, toggle_wf: Callable):
+    """
+    Get weather and forecast information for a specified location and display it in a scrolled text box.
+
+    Args:
+        location (str): The name of the city for which weather and forecast information is requested.
+        days (int): The number of days to forecast.
+        wflistbox (tkinter.scrolledtext.ScrolledText): The scrolled text box widget to display the information.
+        message_label (tk.Label): The label widget to display messages or errors.
+        toggle_wf (Callable): A function used to toggle the display of the weather and forecast information.
+
+    Returns:
+        None
+    """
+    api_key = json.load(open("Weather_token.json", 'r'))["TOKEN"]
+    forecast_url = "http://api.openweathermap.org/data/2.5/forecast?"
+    weather_url = "http://api.openweathermap.org/data/2.5/weather?"
+
+    if location.strip() == "":
+        show_message(message_label, text="Enter a City!", colour="red")
+
+    if not days or not days.isdigit() or int(days) < 0:
+        show_message(message_label, text="Invalid input. Defaulting to 5 days.", colour="red")
+    else:
+        days = min(int(days), 5)  # Limit days to a maximum of 5
+        weather_params = {
+            "q": location.title(),
+            "appid": api_key
+        }
+
+        weather_response = requests.get(weather_url, params=weather_params).json()
+        if weather_response['cod'] == "404":
+            show_message(message_label, text="City Not Found!", colour="red")
+        else:
+            lat, lon = weather_response['coord']['lat'], weather_response['coord']['lon']
+
+            forecast_params = {
+                "appid": api_key,
+                "cnt": int(days) * 8,
+                "lat": lat,
+                "lon": lon
+            }
+
+            forecast_response = requests.get(forecast_url, params=forecast_params).json()
+
+            show_message(message_label, text="Getting Weather & Forecast....", colour="green")
+            weather_desc = weather_response["weather"][0].get("description", "N/A")
+            temperature = weather_response["main"].get("temp", "N/A")
+            humidity = weather_response["main"].get("humidity", "N/A")
+            feels_like = weather_response["main"].get("feels_like", "N/A")
+            feels_like_celsius, feels_like_fahrenheit = convert(feels_like)
+            celsius, fahrenheit = convert(temperature)
+
+            forecasted_Data = []
+            for data in forecast_response['list'][::8]:
+                day_timestamp = data['dt']
+                day = datetime.datetime.fromtimestamp(day_timestamp).strftime("%A")
+                converted_c_min, converted_f_min = convert(data['main']['temp_min'])
+                converted_c_max, converted_f_max = convert(data['main']['temp_max'])
+                forecasted_Data.append(
+                    {
+                        "day": day,
+                        "min_temp": f"{converted_c_min:.2f}°C/ {converted_f_min:.2f}°F",
+                        "max_temp": f"{converted_c_max:.2f}°C/ {converted_f_max:.2f}°F",
+                        "description": data["weather"][0]['description']
+                    }
+                )
+            wflistbox.insert(tk.END, f"Weather & Forecast for {location.title()}\n\n", "custom_font")
+            wflistbox.insert(tk.END,
+                             f"Weather details:\nWeather: {weather_desc}\nTemperature: {celsius:.2f}°C, {fahrenheit:.2f}°F\n"
+                             f"Feels like {feels_like_celsius:.2f}°C, {feels_like_fahrenheit:.2f}°F\n"
+                             f"Humidity {humidity}%\n\n", "custom_font")
+            for values in forecasted_Data:
+                wflistbox.insert(tk.END,
+                                 f"Forecast details:\nDay: {values['day']}\nMinimum Temperature: {values['min_temp']}\n"
+                                 f"Maximum Temperature: {values['max_temp']}\nWeather: {values['description']}\n\n",
+                                 "custom_font")
+            wflistbox.after(2000, lambda: wflistbox.pack())
+        toggle_wf(False)
+
+
 def gui():
     window = tk.Tk()
     window.title("Weather App")
@@ -154,14 +295,14 @@ def gui():
     Weather_button = tk.Button(frame_main, text="ADD", command=lambda: weather(Weather_entry.get(),
                                                                                Weather_box,
                                                                                Weather_message_label, weather_toggle)
-                               , font=("Merriweather", 15))
+                               , font=("Quicksand", 15))
 
     Weather_message_label = tk.Label(frame_main, text="", font=("Quicksand", 15, "italic"))
     Weather_box = scrolledtext.ScrolledText(frame_main, wrap=tk.WORD, width=80, height=40, background="#E1E7DE",
                                             borderwidth=4)
 
     # Forecast fields
-    forecast_label = tk.Label(frame_main, text="Enter a city: ", font=("Quicksand", 25, "italic"), anchor="w")
+    forecast_label = tk.Label(frame_main, text="Enter a city: ", font=("Quicksand", 25, "italic"))
     forecast_message_label = tk.Label(frame_main, text="", font=("Quicksand", 15, "italic"))
     forecast_entry = tk.Entry(frame_main, font=("Quicksand", 15))
     forecast_Days_label = tk.Label(frame_main, text="Enter number of days: ",
@@ -171,12 +312,26 @@ def gui():
                                              borderwidth=4, )
     forecast_button = tk.Button(frame_main, text="Forecast", command=lambda:
     forecast(forecast_entry.get(), forecast_days_entry.get(), forecast_message_label, forecast_box, forecast_toggle),
-                                font=("Merriweather", 15))
+                                font=("Quicksand", 15))
+
+    weather_and_forecast_label = tk.Label(frame_main, text="Enter a city: ", font=("Quicksand", 25, "italic"))
+    weather_and_forecast_entry = tk.Entry(frame_main, font=("Quicksand", 15))
+    weather_and_forecast_label_2 = tk.Label(frame_main, text="Enter number of days: ", font=("Quicksand", 25, "italic"))
+    weather_and_forecast_days = tk.Entry(frame_main, font=("Quicksand", 15))
+    weather_and_forecast_message = tk.Label(frame_main, text="", font=("Quicksand", 15, "italic"))
+    weather_and_forecast_box = tk.scrolledtext.ScrolledText(frame_main, wrap=tk.WORD, width=80, height=40,
+                                                            background="#E1E7DE",
+                                                            borderwidth=4)
+    weather_and_forecast_button = tk.Button(frame_main, text="Get", command=lambda:
+    weather_and_forecast(weather_and_forecast_entry.get(), weather_and_forecast_days.get(), weather_and_forecast_box,
+                         weather_and_forecast_message,
+                         weather_and_forecast_toggle)
+                                            , font=("Quicksand", 15))
 
     Options = ["", "Weather", "Forecast", "Weather & Forecast"]
     Options_label = tk.Label(frame_main, text="Select a Task: ", font=("Quicksand", 25, "italic"))
     option = tk.StringVar()
-    Option_box = tk.ttk.Combobox(frame_main, textvariable=option, font=("Merriweather", 15))
+    Option_box = tk.ttk.Combobox(frame_main, textvariable=option, font=("Quicksand", 15))
     Option_box['values'] = Options
     Option_box['state'] = "readonly"
     Options_label.pack(pady=10)
@@ -205,7 +360,6 @@ def gui():
             forecast_button.pack(pady=10)
             forecast_box.delete("1.0", tk.END)
             forecast_box.config(state="normal")
-            forecast_box.config(state="normal")
             forecast_box.tag_configure("custom_font", font=("Quicksand", 18), foreground="black")
         else:
             forecast_entry.pack_forget()
@@ -217,6 +371,26 @@ def gui():
             forecast_entry.delete(0, tk.END)
             forecast_days_entry.delete(0, tk.END)
 
+    def weather_and_forecast_toggle(enable):
+        if enable:
+            weather_and_forecast_label.pack(pady=5)
+            weather_and_forecast_entry.pack(pady=10)
+            weather_and_forecast_label_2.pack(pady=5)
+            weather_and_forecast_days.pack(pady=10)
+            weather_and_forecast_button.pack(pady=10)
+            weather_and_forecast_box.config(state="normal")
+            weather_and_forecast_box.delete("1.0", tk.END)
+            weather_and_forecast_box.tag_configure("custom_font", font=("Quicksand", 18), foreground="black")
+        else:
+            weather_and_forecast_label.pack_forget()
+            weather_and_forecast_entry.pack_forget()
+            weather_and_forecast_label_2.pack_forget()
+            weather_and_forecast_days.pack_forget()
+            weather_and_forecast_button.pack_forget()
+            weather_and_forecast_entry.delete(0, tk.END)
+            weather_and_forecast_days.delete(0, tk.END)
+            weather_and_forecast_box.config(state="disabled")
+
     def get_value(event):
         selected = option.get()
         if selected == "Weather":
@@ -224,16 +398,27 @@ def gui():
             forecast_toggle(False)
             Weather_box.pack_forget()
             forecast_box.pack_forget()
+            weather_and_forecast_box.pack_forget()
         elif selected == "Forecast":
             forecast_toggle(True)
             weather_toggle(False)
             forecast_box.pack_forget()
             Weather_box.pack_forget()
+            weather_and_forecast_box.pack_forget()
+        elif selected == "Weather & Forecast":
+            weather_and_forecast_toggle(True)
+            forecast_toggle(False)
+            weather_toggle(False)
+            forecast_box.pack_forget()
+            Weather_box.pack_forget()
+            weather_and_forecast_box.pack_forget()
 
     entry_mapping = {
         Weather_entry: Weather_button,
         forecast_entry: forecast_days_entry,
-        forecast_days_entry: forecast_button
+        forecast_days_entry: forecast_button,
+        weather_and_forecast_entry: weather_and_forecast_days,
+        weather_and_forecast_days: weather_and_forecast_button
     }
 
     def widget_handler(event):
@@ -249,7 +434,7 @@ def gui():
 
     for widget in entry_mapping:
         widget.bind("<Return>", widget_handler)
-    for button in [Weather_button, forecast_button]:
+    for button in [Weather_button, forecast_button, weather_and_forecast_button]:
         button.bind("<Return>", widget_handler)
 
     def close():
@@ -263,6 +448,25 @@ def gui():
     Option_box.pack(pady=10)
 
     window.mainloop()
+
+
+def logging_func():
+    """Creates a console and file logging handler that logs messages"""
+    logging.basicConfig(level=logging.DEBUG, format='%(funcName)s - %(message)s - %(asctime)s - %(levelname)s',
+                        datefmt="%Y-%m-%d %I:%M:%S")
+
+    # Create a file handler
+    file_handler = logging.FileHandler('Weather_App.log')
+    file_handler.setLevel(logging.WARNING)  # Set the desired log level for the file handler
+
+    # Create a formatter and attach it to the handlers
+    formatter = logging.Formatter('%(funcName)s - %(message)s - %(asctime)s - %(levelname)s',
+                                  "%Y-%m-%d %I:%M:%S")
+    file_handler.setFormatter(formatter)
+
+    # Get the root logger and add the handlers
+    logger = logging.getLogger('')
+    logger.addHandler(file_handler)
 
 
 if __name__ == '__main__':

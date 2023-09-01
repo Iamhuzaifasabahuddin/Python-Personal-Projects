@@ -6,7 +6,7 @@ api_key = json.load(open("Weather_token.json", 'r'))["TOKEN"]
 url = "http://api.openweathermap.org/data/2.5/weather?"
 
 params = {
-    "q": "t",
+    "q": "karachi",
     "appid": api_key
 }
 
@@ -44,7 +44,7 @@ def forecast(location):
         "lat": lat,
         "lon": lon,
         "appid": api_key,
-        # "cnt": 5 * 8  # Fetch forecast for the next 3 days (24 hours * 3)
+        "cnt": 5 * 8  # Fetch forecast for the next 3 days (24 hours * 3)
     }
 
     daily_forecast = []
@@ -52,7 +52,7 @@ def forecast(location):
     results = forecast_response.json()
 
     # Skip the first entry as it corresponds to the current day
-    for data in results['list'][1::8]:  # Use [1::8] to select every 8th entry starting from the second entry
+    for data in results['list'][::8]:  # Use [1::8] to select every 8th entry starting from the second entry
         daily_forecast.append(
             {
                 "day": datetime.datetime.fromtimestamp(data['dt']).strftime("%A"),
