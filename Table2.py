@@ -1,15 +1,13 @@
 import sqlite3
 
+connection = sqlite3.connect('Your_file_name.db')
 
-def delete_all_records():
-    connection = sqlite3.connect("Passwords.db")
-    cursor = connection.cursor()
+cursor = connection.cursor()
+print("Connection established")
 
-    cursor.execute("DELETE FROM manager")
-    connection.commit()
+connection.execute('''CREATE TABLE Table_name
+        (USERNAME      TEXT    NOT NULL,
+        ACCOUNT           TEXT    NOT NULL,
+        PASSWORD           TEXT     NOT NULL);''')
 
-    connection.close()
-
-
-# Call the function to delete all records
-delete_all_records()
+print("Table created")
