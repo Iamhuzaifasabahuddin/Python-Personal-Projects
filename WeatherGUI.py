@@ -25,7 +25,6 @@ def show_message(message_label, text, colour, duration=2000):
     message_label.config(text=text, fg=colour)
     message_label.pack()
     message_label.after(duration, lambda: message_label.pack_forget())
-    logging.info(text)
 
 
 def convert(temperature):
@@ -40,6 +39,7 @@ def convert(temperature):
     """
     celsius = temperature - 273.15
     fahrenheit = (celsius * 9 / 5) + 32
+    logging.info("Conversion!")
     return celsius, fahrenheit
 
 
@@ -57,6 +57,7 @@ def centered(window, width, height):
     """
     screen_width, screen_height = window.winfo_screenwidth(), window.winfo_screenheight()
     screen_centered_width, screen_centered_height = (screen_width - width) // 2, (screen_height - height) // 2
+    logging.info("Centralized Window!")
     return window.geometry(f"{width}x{height}+{screen_centered_width}+{screen_centered_height}")
 
 
@@ -89,9 +90,11 @@ def weather(location, listbox: tk.scrolledtext.ScrolledText, message_label, weat
     else:
         if results["cod"] == "404":
             show_message(message_label, text="City Not Found!", colour="red")
+            logging.info("City Not Found!")
             weather_toggle(False)
         else:
             show_message(message_label, text="Getting Weather....", colour="green")
+            logging.info("Getting Weather From The API!")
             weather_desc = results["weather"][0].get("description", "N/A")
             temperature = results["main"].get("temp", "N/A")
             humidity = results["main"].get("humidity", "N/A")
@@ -118,8 +121,10 @@ def weather(location, listbox: tk.scrolledtext.ScrolledText, message_label, weat
                                        f"Feels like {feels_like_celsius:.2f}°C, {feels_like_fahrenheit:.2f}°F\n"
                                        f"Humidity {humidity}%\n", "custom_font")
                 listbox.after(2000, lambda: listbox.pack(pady=10))
+                logging.info("Weather From The API Displayed!")
                 weather_toggle(False)
             else:
+                logging.info("Icon From The API Doesnt Exist!")
                 print("Icon not found")
 
 
@@ -143,10 +148,12 @@ def forecast(location, days, message_label, forecast_listbox: tk.scrolledtext.Sc
 
     if location.strip() == "":
         show_message(message_label, text="Enter a City!", colour="red")
+        logging.info("Invalid Input!")
         return
 
     if not days or not days.isdigit() or int(days) < 0:
         show_message(message_label, text="Invalid input. Defaulting to 5 days.", colour="red")
+        logging.info("Invalid Input!")
     else:
         days = min(int(days), 5)  # Limit days to a maximum of 5
 
@@ -157,6 +164,7 @@ def forecast(location, days, message_label, forecast_listbox: tk.scrolledtext.Sc
         response_weather = requests.get(weather_url, params=weather_params).json()
         if response_weather['cod'] == '404':
             show_message(message_label, text="City Not Found!", colour="red")
+            logging.info("City Not Found!")
             forecast_toggle(False)
         else:
             lat, lon = response_weather['coord']['lat'], response_weather['coord']['lon']
@@ -186,6 +194,7 @@ def forecast(location, days, message_label, forecast_listbox: tk.scrolledtext.Sc
                 )
 
             show_message(message_label, text=f"Getting Forecast for {days} Days...", colour="green")
+            logging.info("Getting Forecast From The API!")
             forecast_listbox.insert(tk.END, f"Forecast For The Next {days} Days For {location.capitalize()}:\n\n",
                                     "custom_font")
             for values in daily_forecast:
@@ -193,6 +202,7 @@ def forecast(location, days, message_label, forecast_listbox: tk.scrolledtext.Sc
                                                 f"Maximum Temperature: {values['max_temp']}\nWeather: {values['description']}\n\n",
                                         "custom_font")
             forecast_listbox.after(2000, lambda: forecast_listbox.pack(pady=10))
+            logging.info("Forecast From The API Displayed Successfully!")
             forecast_toggle(False)
 
 
@@ -217,9 +227,12 @@ def weather_and_forecast(location: str, days: int, wflistbox: tkinter.scrolledte
 
     if location.strip() == "":
         show_message(message_label, text="Enter a City!", colour="red")
+        logging.info("Invalid Input!")
+        return
 
     if not days or not days.isdigit() or int(days) < 0:
         show_message(message_label, text="Invalid input. Defaulting to 5 days.", colour="red")
+        logging.info("Invalid Input!")
     else:
         days = min(int(days), 5)  # Limit days to a maximum of 5
         weather_params = {
@@ -230,6 +243,7 @@ def weather_and_forecast(location: str, days: int, wflistbox: tkinter.scrolledte
         weather_response = requests.get(weather_url, params=weather_params).json()
         if weather_response['cod'] == "404":
             show_message(message_label, text="City Not Found!", colour="red")
+            logging.info("City Not Found!")
         else:
             lat, lon = weather_response['coord']['lat'], weather_response['coord']['lon']
 
@@ -243,6 +257,7 @@ def weather_and_forecast(location: str, days: int, wflistbox: tkinter.scrolledte
             forecast_response = requests.get(forecast_url, params=forecast_params).json()
 
             show_message(message_label, text="Getting Weather & Forecast....", colour="green")
+            logging.info("Getting Weather & Forecast From The API!")
             weather_desc = weather_response["weather"][0].get("description", "N/A")
             temperature = weather_response["main"].get("temp", "N/A")
             humidity = weather_response["main"].get("humidity", "N/A")
@@ -265,6 +280,7 @@ def weather_and_forecast(location: str, days: int, wflistbox: tkinter.scrolledte
                     }
                 )
             wflistbox.insert(tk.END, f"Weather & Forecast for {location.title()}\n\n", "custom_font")
+            logging.info("Getting Weather & Forecast From The API!")
             wflistbox.insert(tk.END,
                              f"Weather details:\nWeather: {weather_desc}\nTemperature: {celsius:.2f}°C, {fahrenheit:.2f}°F\n"
                              f"Feels like {feels_like_celsius:.2f}°C, {feels_like_fahrenheit:.2f}°F\n"
@@ -275,6 +291,7 @@ def weather_and_forecast(location: str, days: int, wflistbox: tkinter.scrolledte
                                  f"Maximum Temperature: {values['max_temp']}\nWeather: {values['description']}\n\n",
                                  "custom_font")
             wflistbox.after(2000, lambda: wflistbox.pack())
+            logging.info("Weather & Forecast From The API Displayed Successfully!")
         toggle_wf(False)
 
 
@@ -470,4 +487,5 @@ def logging_func():
 
 
 if __name__ == '__main__':
+    logging_func()
     gui()
