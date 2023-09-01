@@ -1,7 +1,8 @@
+import json
 import requests
 
-app_id = 'bc8e03f2'
-app_key = 'd263a2d7110848ad2682bf7e99bd826f'
+app_id = json.load(open("Edamam_token.json", 'r'))["TOKEN"]["APP_ID"]
+app_key = json.load(open("Edamam_token.json", 'r'))["TOKEN"]["APP_KEY"]
 search_query = "onion and chicken"
 
 url = f"https://api.edamam.com/search"
