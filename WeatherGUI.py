@@ -444,7 +444,7 @@ def gui():
             if widget == focused_widget:
                 next_widget.focus()
                 break
-        for buttons in [Weather_button, forecast_button]:
+        for buttons in [Weather_button, forecast_button, weather_and_forecast_button]:
             if focused_widget == buttons:
                 buttons.invoke()
         # forecast_button.focus_set()
