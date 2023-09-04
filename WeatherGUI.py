@@ -447,7 +447,6 @@ def gui():
         for buttons in [Weather_button, forecast_button, weather_and_forecast_button]:
             if focused_widget == buttons:
                 buttons.invoke()
-        # forecast_button.focus_set()
 
     for widget in entry_mapping:
         widget.bind("<Return>", widget_handler)
