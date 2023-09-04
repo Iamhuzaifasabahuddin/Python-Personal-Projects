@@ -843,8 +843,8 @@ def gui():
 
 def logging_function():
     """Creates a console and file logging handler that logs messages"""
-    logging.basicConfig(level=logging.DEBUG, format='%(funcName)s - %(message)s - %(asctime)s - %(levelname)s',
-                        datefmt="%Y-%m-%d %I:%M:%S")
+    logging.basicConfig(level=logging.INFO, format='%(funcName)s - %(message)s - %(asctime)s - %(levelname)s',
+                        datefmt = "%Y-%m-%d %I:%M:%S %p")
 
     # Create a file handler
     file_handler = logging.FileHandler('password_manager.log')
@@ -852,7 +852,7 @@ def logging_function():
 
     # Create a formatter and attach it to the handlers
     formatter = logging.Formatter('%(funcName)s - %(message)s - %(asctime)s - %(levelname)s',
-                                  "%Y-%m-%d %I:%M:%S")
+                                  "%Y-%m-%d %I:%M:%S %p")
     file_handler.setFormatter(formatter)
 
     # Get the root logger and add the handlers
