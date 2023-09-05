@@ -78,7 +78,7 @@ def weather(location, listbox: tk.scrolledtext.ScrolledText, message_label, weat
     weather_url = "http://api.openweathermap.org/data/2.5/weather?"
 
     params = {
-        "q": location.title(),
+        "q": location.capitalize(),
         "appid": api_key
     }
 
@@ -236,7 +236,7 @@ def weather_and_forecast(location: str, days: int, wflistbox: tkinter.scrolledte
     else:
         days = min(int(days), 5)  # Limit days to a maximum of 5
         weather_params = {
-            "q": location.title(),
+            "q": location.capitalize(),
             "appid": api_key
         }
 
@@ -279,7 +279,7 @@ def weather_and_forecast(location: str, days: int, wflistbox: tkinter.scrolledte
                         "description": data["weather"][0]['description']
                     }
                 )
-            wflistbox.insert(tk.END, f"Weather & Forecast for {location.title()}\n\n", "custom_font")
+            wflistbox.insert(tk.END, f"Weather & Forecast for {location.capitalize()}\n\n", "custom_font")
             logging.info("Getting Weather & Forecast From The API!")
             wflistbox.insert(tk.END,
                              f"Weather details:\nWeather: {weather_desc}\nTemperature: {celsius:.2f}°C, {fahrenheit:.2f}°F\n"
