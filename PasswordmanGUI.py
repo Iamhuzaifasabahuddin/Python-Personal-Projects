@@ -70,11 +70,11 @@ def add(username: Callable, account: str, password: str, message_label: tk.Label
     if selected_account_value.strip() == "" or account.strip() == "" or password.strip() == "":
         show_message(message_label, "Username or Account or Password cannot be empty", "red")
     else:
-        if not search_database(selected_account_value.title(), account.title()):
+        if not search_database(selected_account_value.capitalize(), account.capitalize()):
             connection = sqlite3.connect('Passwords.db')
             cursor = connection.cursor()
-            cursor.execute("INSERT INTO manager VALUES(?, ?, ?)", (selected_account_value.title(),
-                                                                   account.title(), password))
+            cursor.execute("INSERT INTO manager VALUES(?, ?, ?)", (selected_account_value.capitalize(),
+                                                                   account.capitalize(), password))
             connection.commit()
             toggle_add_fields(False)
             show_message(message_label, "Account added successfully!", "green")
@@ -138,7 +138,7 @@ def edit(search: str, search_2: str, account: str, username: str, password: str,
     cursor = connection.cursor()
 
     existing_data = cursor.execute("SELECT USERNAME, ACCOUNT, PASSWORD FROM manager WHERE USERNAME=? AND ACCOUNT=?",
-                                   (search.title(), search_2.title())).fetchone()
+                                   (search.capitalize(), search_2.capitalize())).fetchone()
 
     if not existing_data:
         show_message(message_label, "Account not found", "red")
@@ -147,11 +147,11 @@ def edit(search: str, search_2: str, account: str, username: str, password: str,
         new_username = username.strip() if username.strip() else existing_data[0]
         new_account = account.strip() if account.strip() else existing_data[1]
         new_password = password.strip() if password.strip() else existing_data[2]
-        if search_database(new_username.title(), new_account.title()):
+        if search_database(new_username.capitalize(), new_account.capitalize()):
             show_message(message_label, "Account details clash", "red")
         else:
             cursor.execute("UPDATE manager SET ACCOUNT=?, USERNAME=?, PASSWORD=? WHERE USERNAME=? AND ACCOUNT=?",
-                           (new_account.title(), new_username.title(), new_password, search, search_2))
+                           (new_account.capitalize(), new_username.capitalize(), new_password, search, search_2))
             connection.commit()
             show_message(message_label, "Account updated", "green")
     toggle_edit_2()
@@ -181,13 +181,13 @@ def delete(Account: str, Username: str, message_label: tk.Label, toggle_delete: 
     connection = sqlite3.connect('Passwords.db')
     cursor = connection.cursor()
     results = cursor.execute("SELECT USERNAME,ACCOUNT, PASSWORD FROM manager WHERE USERNAME=? AND ACCOUNT=?",
-                             (Account.title(), Username.title(),))
+                             (Account.capitalize(), Username.capitalize(),))
     results = results.fetchall()
 
     if not results:
         show_message(message_label, "Account does not exist!", "red")
     else:
-        cursor.execute("DELETE FROM manager WHERE USERNAME=?", (Account.strip().title(),))
+        cursor.execute("DELETE FROM manager WHERE USERNAME=?", (Account.strip().capitalize(),))
         connection.commit()
         toggle_delete(False)
         show_message(message_label, "Account deleted", "green")
@@ -302,7 +302,8 @@ def exist(username: str, message_label: tk.Label, toggle_search: Callable, searc
     else:
         connection = sqlite3.connect("Passwords.db")
         cursor = connection.cursor()
-        res = cursor.execute("SELECT USERNAME, ACCOUNT, PASSWORD FROM manager WHERE USERNAME=?", (username.title(),))
+        res = cursor.execute("SELECT USERNAME, ACCOUNT, PASSWORD FROM manager WHERE USERNAME=?",
+                             (username.capitalize(),))
         result = res.fetchall()
         if not result:
             show_message(message_label, "Account doesnt exist", "red")
