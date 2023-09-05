@@ -8,7 +8,7 @@ Passwords.db
 password_manager.log
 requirements.txt
 Weather_App.log
-
+Expenses.db
 /.idea/inspectionProfiles/profiles_settings.xml
 /.idea/inspectionProfiles/Project_Default.xml
 /.idea/.gitignore
