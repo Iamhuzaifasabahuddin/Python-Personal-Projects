@@ -1,4 +1,5 @@
 import sqlite3
+import pprint
 
 connection = sqlite3.connect("Expenses.db")
 cursor = connection.cursor()
@@ -11,9 +12,8 @@ cursor.execute('''
         Category TEXT NOT NULL,
         Description TEXT,
         Amount FLOAT NOT NULL,
-        Total FLOAT  NOT NULL
-    )
+        Available FLOAT  NOT NULL)
 ''')
 cursor.execute("SELECT * FROM Transactions")
-print(cursor.fetchall())
 print("Table Created Successfully!")
+pprint.pprint(cursor.fetchall())

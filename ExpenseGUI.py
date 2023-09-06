@@ -22,33 +22,79 @@ def deposit(value, message_label, toggle_deposit):
             show_message(message_label, text="Amount should be greater than 0!", colour="red")
             logging.info(f"Invalid Input!")
         else:
-            cursor.execute("SELECT Total FROM Transactions WHERE strftime('%Y-%m', Date) = ? AND Category = ?",
-                           (today.strftime('%Y-%m'), "MONTHLY DEPOSIT!"))
+            cursor.execute("SELECT Available FROM Transactions WHERE strftime('%Y-%m', Date) = ? AND Category = ?",
+                           (formatted_date, "MONTHLY DEPOSIT!"))
             existing_total = cursor.fetchone()
             if existing_total:
                 existing_total = existing_total[0]
                 new_total = existing_total + value
                 # Update the existing deposit record
-                cursor.execute("UPDATE Transactions SET Amount = ?, Total = ?, Description=? "
+                cursor.execute("UPDATE Transactions SET Amount = ?, Available = ?, Description=? "
                                "WHERE strftime('%Y-%m', Date) = ? AND "
                                "Category = ?",
                                (value, new_total, "Updated Deposit!", formatted_date, "MONTHLY DEPOSIT!"))
             else:
-                cursor.execute("INSERT INTO Transactions (Date, Category, Amount, Total) VALUES (?, ?, ?, ?)",
-                               (formatted_date, "MONTHLY DEPOSIT!", value, value))
+                cursor.execute("INSERT INTO Transactions (Date, Category, Amount, Available) VALUES (?, ?, ?, ?)",
+                               (today.strftime('%Y-%m-%d'), "MONTHLY DEPOSIT!", value, value))
+            show_message(message_label,
+                         text=f"Deposit for month: {today.strftime('%B')}\nValue: £{value} is Successful!\n"
+                              f"Current balance: £{existing_total}\nUpdated balance £{new_total}",
+                         colour="green", duration=3000)
             connection.commit()
             toggle_deposit(False)
-            show_message(message_label, text=f"Deposit for month {today.strftime('%B')}\nValue £{value} is Successful!",
-                         colour="green")
             logging.info("Successfully deposited the amount!")
-    except ValueError as error:
+    except (ValueError, sqlite3.Error) as error:
         show_message(message_label, text=f"Invalid Value Entered", colour="red")
         logging.info(f"ERROR: {error}!")
 
 
 def deduct(category, description, value, message_label, toggle_deduct):
-    option = category()
-    show_message(message_label, text=f"Category: {option}\ndescription: {description}\nvalue: {value}", colour='green')
+    try:
+        option = category()
+        today = datetime.date.today()
+        formatted_date = today.strftime('%Y-%m')
+        value = float(value)
+
+        connection = sqlite3.connect("Expenses.db")
+        cursor = connection.cursor()
+        # Fetch the existing total deposit for the current month
+        cursor.execute("SELECT Available FROM Transactions WHERE strftime('%Y-%m', Date) = ? AND Category = ?",
+                       (formatted_date, "MONTHLY DEPOSIT!"))
+        existing_total = cursor.fetchone()
+        if value <= 0 or option.strip() == "":
+            show_message(message_label, text="Invalid Entry!\n(check value > 0 & category is not empty)", colour="red")
+            logging.info("Value should be greater than 0! or Category is empty")
+        else:
+            if existing_total is None:
+                show_message(message_label, text=f"No deposit made for the month {today.strftime('%B')}", colour="red")
+                logging.info("No funds allocated for the month!")
+            else:
+                existing_total = existing_total[0]
+                if value > existing_total:
+                    show_message(message_label, text="Insufficient Funds!", colour="red")
+                    logging.info("Insufficient funds in the database add more!")
+                else:
+                    new_total = existing_total - value
+                    if description.strip() == "":
+                        description = "N/A"
+                    # Entering main category to db
+                    cursor.execute("INSERT INTO Transactions (Date, Category, Description, Amount, Available) "
+                                   "VALUES (?, ?, ?, ?, ?)",
+                                   (today.strftime('%Y-%m-%d'), option, description, value, new_total))
+                    # Updating Available in db
+                    cursor.execute("UPDATE Transactions SET Available = ? WHERE strftime('%Y-%m', Date) = ?",
+                                   (new_total, formatted_date))
+                    # Updating Every Available column in db
+                    cursor.execute("UPDATE Transactions SET Available = ? WHERE strftime('%Y-%m', Date) = ? AND "
+                                   "Category = ?",
+                                   (new_total, formatted_date, "MONTHLY DEPOSIT!"))
+                    show_message(message_label, text="Success!", colour='green')
+                    logging.info("Successfully Inserted & Updated the data into the database")
+            connection.commit()
+            connection.close()
+    except (ValueError, TypeError, sqlite3.Error) as error:
+        show_message(message_label, text=f"{error}", colour='red')
+        logging.info(f"ERROR: {error}!")
 
 
 def convert():
@@ -114,7 +160,7 @@ def gui():
 
     # Deduction fields
     deduction_frame = tk.Frame(main_frame)
-    Categories = ["Food", "Entertainment", "Business", "Shopping", "Misc", "Other"]
+    Categories = ["", "Food", "Entertainment", "Business", "Shopping", "Misc", "Other"]
     deduct_label_category = tk.Label(deduction_frame, text="Select a category: ", font=("Quicksand", 17, "italic"))
     Category = tk.StringVar()
     deduction_box = ttk.Combobox(deduction_frame, textvariable=Category, font=("Quicksand", 15, "italic"))
@@ -160,8 +206,6 @@ def gui():
             deposit_frame.pack()
         else:
             deposit_label.pack_forget()
-            pound_label.pack_forget()
-            deposit_entry.pack_forget()
             deposit_frame.pack_forget()
 
     def toggle_deduct(enable):
@@ -177,6 +221,12 @@ def gui():
             deduct_button.grid(row=6, column=0, columnspan=2, pady=10)
             deduction_frame.pack()
 
+        else:
+            deduction_entry_description.delete(0, tk.END)
+            deduction_entry_value.delete(0, tk.END)
+            deduction_box.set(Categories[0])
+            deduction_frame.pack_forget()
+
     def get_value(event):
         task = values.get()
         if task == 'Add Amount':
@@ -191,7 +241,10 @@ def gui():
             pass
 
     entry_mappings = {
-        deposit_entry: deposit_button
+        deposit_entry: deposit_button,
+        deduction_box: deduction_entry_description,
+        deduction_entry_description: deduction_entry_value,
+        deduction_entry_value: deduct_button
     }
 
     def widget_handler(event):
@@ -200,13 +253,13 @@ def gui():
             if widget == current:
                 next_widget.focus()
                 break
-        for button in [deposit_button]:
+        for button in [deposit_button, deduct_button]:
             if current == button:
                 button.invoke()
 
     for widgets in entry_mappings:
         widgets.bind("<Return>", widget_handler)
-    for buttons in [deposit_button]:
+    for buttons in [deposit_button, deduct_button]:
         buttons.bind("<Return>", widget_handler)
     Operations_box.bind('<<ComboboxSelected>>', get_value)
     window.mainloop()
