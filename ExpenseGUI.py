@@ -23,7 +23,7 @@ def deposit(value, message_label, toggle_deposit):
             logging.info(f"Invalid Input!")
         else:
             cursor.execute("SELECT Total FROM Transactions WHERE strftime('%Y-%m', Date) = ? AND Category = ?",
-                           (today.strftime('%Y-%m'), "MONTHLY DEPOSIT!"))
+                           (formatted_date, "MONTHLY DEPOSIT!"))
             existing_total = cursor.fetchone()
             if existing_total:
                 existing_total = existing_total[0]
