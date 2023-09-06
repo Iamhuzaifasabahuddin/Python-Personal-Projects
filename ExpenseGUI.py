@@ -29,10 +29,13 @@ def deposit(value, message_label, toggle_deposit):
                 existing_total = existing_total[0]
                 new_total = existing_total + value
                 # Update the existing deposit record
-                cursor.execute("UPDATE Transactions SET Amount = ?, Available = ?, Description=? "
-                               "WHERE strftime('%Y-%m', Date) = ? AND "
-                               "Category = ?",
-                               (value, new_total, "Updated Deposit!", formatted_date, "MONTHLY DEPOSIT!"))
+                cursor.execute(
+                    "UPDATE Transactions SET Date = ?, Amount = ?, Available = ? "
+                    "WHERE strftime('%Y-%m', Date) = ? AND Category = ?",
+                    (today.strftime('%Y-%m-%d'), value, new_total, formatted_date, "MONTHLY DEPOSIT!"))
+                # Update Available in every column
+                cursor.execute("UPDATE Transactions SET Available = ? WHERE strftime('%Y-%m', Date) = ?",
+                               (new_total, formatted_date))
             else:
                 cursor.execute("INSERT INTO Transactions (Date, Category, Amount, Available) VALUES (?, ?, ?, ?)",
                                (today.strftime('%Y-%m-%d'), "MONTHLY DEPOSIT!", value, value))
@@ -82,12 +85,12 @@ def deduct(category, description, value, message_label, toggle_deduct):
                                    "VALUES (?, ?, ?, ?, ?)",
                                    (today.strftime('%Y-%m-%d'), option, description, value, new_total))
                     # Updating Available in db
-                    cursor.execute("UPDATE Transactions SET Available = ? WHERE strftime('%Y-%m', Date) = ?",
-                                   (new_total, formatted_date))
-                    # Updating Every Available column in db
                     cursor.execute("UPDATE Transactions SET Available = ? WHERE strftime('%Y-%m', Date) = ? AND "
                                    "Category = ?",
                                    (new_total, formatted_date, "MONTHLY DEPOSIT!"))
+                    # Updating Every Available column in db
+                    cursor.execute("UPDATE Transactions SET Available = ? WHERE strftime('%Y-%m', Date) = ?",
+                                   (new_total, formatted_date))
                     show_message(message_label, text="Success!", colour='green')
                     logging.info("Successfully Inserted & Updated the data into the database")
             connection.commit()
