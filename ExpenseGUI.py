@@ -1,23 +1,24 @@
 import datetime
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
+from tkcalendar import Calendar
 import sqlite3
 import logging
+from typing import Callable
 
 
-def show_message(message_label, text, colour, duration=2000):
+def show_message(message_label: tk.Label, text: str, colour: str, duration=2000):
     message_label.config(text=text, fg=colour)
     message_label.pack(pady=10)
     message_label.after(duration, lambda: message_label.pack_forget())
 
 
-def deposit(value, message_label, toggle_deposit):
+def deposit(value: float, message_label: tk.Label, toggle_deposit: Callable):
     try:
         connection = sqlite3.connect('Expenses.db')
         cursor = connection.cursor()
         today = datetime.date.today()
         formatted_date = today.strftime('%Y-%m')
-        value = float(value)
         if value <= 0:
             show_message(message_label, text="Amount should be greater than 0!", colour="red")
             logging.info(f"Invalid Input!")
@@ -56,12 +57,11 @@ def deposit(value, message_label, toggle_deposit):
         logging.info(f"ERROR: {error}!")
 
 
-def deduct(category, description, value, message_label, toggle_deduct):
+def deduct(category: Callable, description: str, value: float, message_label: tk.Label, toggle_deduct: Callable):
     try:
         option = category()
         today = datetime.date.today()
         formatted_date = today.strftime('%Y-%m')
-        value = float(value)
 
         connection = sqlite3.connect("Expenses.db")
         cursor = connection.cursor()
@@ -110,11 +110,12 @@ def convert():
     raise NotImplementedError
 
 
-def view():
-    raise NotImplementedError
+def view(date, message_label):
+    dated = date.get_displayed_month()
+    show_message(message_label, text=f"{dated}", colour="green")
 
 
-def centered(window, width, height):
+def centered(window: tk.Tk, width: int, height: int):
     try:
         screen_width, screen_height = window.winfo_screenwidth(), window.winfo_screenheight()
         centered_width, centered_height = (screen_width - width) // 2, (screen_height - height) // 2
@@ -130,7 +131,7 @@ def gui():
 
     main_frame = tk.Frame(centered(window, 700, 700))
     window_label = tk.Label(main_frame, text="Welcome To Expense Tracker!", font=("Quicksand", 25, "italic"))
-    window_label.pack(pady=10)
+    window_label.pack(pady=20)
     main_frame.pack(anchor="center")
 
     # Main listbox operations
@@ -163,7 +164,7 @@ def gui():
     deposit_button = tk.Button(
         deposit_frame,
         text="Deposit",
-        command=lambda: deposit(deposit_entry.get(), global_message_label, toggle_deposit),
+        command=lambda: deposit(float(deposit_entry.get()), global_message_label, toggle_deposit),
         font=("Quicksand", 15, "bold")
     )
 
@@ -191,10 +192,18 @@ def gui():
     )
     deduct_button = tk.Button(deduction_frame, text="Deduct", command=lambda: deduct(deducted_Category,
                                                                                      deduction_entry_description.get(),
-                                                                                     deduction_entry_value.get(),
+                                                                                     float(deduction_entry_value.get()),
                                                                                      global_message_label,
                                                                                      toggle_deduct),
                               font=("Quicksand", 15, "bold"))
+
+    # View fields
+    view_frame = tk.Frame(main_frame)
+    view_label_date = tk.Label(view_frame, text="Select a Month: ", font=("Quicksand", 15, "italic"))
+    view_dates = Calendar(view_frame)
+    view_box = scrolledtext.ScrolledText(view_frame, wrap=tk.WORD, width=60, height=40)
+
+    view_button = tk.Button(view_frame, text="View", command=lambda: view(view_dates, global_message_label))
 
     def deducted_Category(event=None):
         if Category.get() == "Other":
@@ -236,6 +245,17 @@ def gui():
             deduction_box.set(Categories[0])
             deduction_frame.pack_forget()
 
+    def toggle_view(enable):
+        if enable:
+            view_label_date.grid(row=0, column=0, pady=10)
+            view_dates.grid(row=1, column=0, pady=10)
+            view_button.grid(row=2, column=0, columnspan=2, pady=10)
+            view_box.config(state='normal')
+            view_frame.pack()
+
+        else:
+            view_frame.pack_forget()
+            view_box.config(state='disabled')
     def get_value(event):
         task = values.get()
         if task == 'Add Amount':
@@ -245,7 +265,9 @@ def gui():
             toggle_deposit(False)
             toggle_deduct(True)
         elif task == 'View Sheet':
-            pass
+            toggle_deposit(False)
+            toggle_deduct(False)
+            toggle_view(True)
         elif task == 'Convert':
             pass
 
