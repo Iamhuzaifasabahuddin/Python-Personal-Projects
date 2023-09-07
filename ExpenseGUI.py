@@ -1,6 +1,6 @@
 import datetime
 import tkinter as tk
-from tkinter import ttk, scrolledtext
+from tkinter import ttk, scrolledtext, messagebox
 import sqlite3
 import logging
 
@@ -22,29 +22,34 @@ def deposit(value, message_label, toggle_deposit):
             show_message(message_label, text="Amount should be greater than 0!", colour="red")
             logging.info(f"Invalid Input!")
         else:
-            cursor.execute("SELECT Available FROM Transactions WHERE strftime('%Y-%m', Date) = ? AND Category = ?",
+            cursor.execute("SELECT Available, Total FROM Transactions WHERE strftime('%Y-%m', Date) = ? AND Category "
+                           "= ?",
                            (formatted_date, "MONTHLY DEPOSIT!"))
-            existing_total = cursor.fetchone()
-            if existing_total:
-                existing_total = existing_total[0]
-                new_total = existing_total + value
+            existing_values = cursor.fetchone()
+            if existing_values:
+                existing_available, initial_amount = existing_values
+                new_available = existing_available + value
+                new_total = initial_amount + value
                 # Update the existing deposit record
                 cursor.execute(
-                    "UPDATE Transactions SET Date = ?, Amount = ?, Available = ? "
+                    "UPDATE Transactions SET Date = ?, Amount = ?, Available = ?, Total = ? "
                     "WHERE strftime('%Y-%m', Date) = ? AND Category = ?",
-                    (today.strftime('%Y-%m-%d'), value, new_total, formatted_date, "MONTHLY DEPOSIT!"))
-                # Update Available in every column
-                cursor.execute("UPDATE Transactions SET Available = ? WHERE strftime('%Y-%m', Date) = ?",
-                               (new_total, formatted_date))
+                    (today.strftime('%Y-%m-%d'), value, new_available, new_total, formatted_date, "MONTHLY DEPOSIT!"))
+                # Update Available and Total columns
+                cursor.execute("UPDATE Transactions SET Available = ?, Total = ? WHERE strftime('%Y-%m', Date) = ?",
+                               (new_available, new_total, formatted_date))
             else:
-                cursor.execute("INSERT INTO Transactions (Date, Category, Amount, Available) VALUES (?, ?, ?, ?)",
-                               (today.strftime('%Y-%m-%d'), "MONTHLY DEPOSIT!", value, value))
+                # Insert a new deposit record
+                cursor.execute("INSERT INTO Transactions (Date, Category, Amount, Available, Total) VALUES (?, ?, ?, "
+                               "?, ?)",
+                               (today.strftime('%Y-%m-%d'), "MONTHLY DEPOSIT!", value, value, value))
             show_message(message_label,
                          text=f"Deposit for month: {today.strftime('%B')}\nValue: £{value} is Successful!\n"
-                              f"Current balance: £{existing_total}\nUpdated balance £{new_total}",
+                              f"Current balance: £{new_available}\nTotal amount deposited: £{new_total}",
                          colour="green", duration=3000)
             connection.commit()
-            toggle_deposit(False)
+            connection.close()
+            # toggle_deposit(False)
             logging.info("Successfully deposited the amount!")
     except (ValueError, sqlite3.Error) as error:
         show_message(message_label, text=f"Invalid Value Entered", colour="red")
@@ -61,36 +66,37 @@ def deduct(category, description, value, message_label, toggle_deduct):
         connection = sqlite3.connect("Expenses.db")
         cursor = connection.cursor()
         # Fetch the existing total deposit for the current month
-        cursor.execute("SELECT Available FROM Transactions WHERE strftime('%Y-%m', Date) = ? AND Category = ?",
+        cursor.execute("SELECT Available, Total FROM Transactions WHERE strftime('%Y-%m', Date) = ? AND Category = ?",
                        (formatted_date, "MONTHLY DEPOSIT!"))
-        existing_total = cursor.fetchone()
+        existing_values = cursor.fetchone()
         if value <= 0 or option.strip() == "":
             show_message(message_label, text="Invalid Entry!\n(check value > 0 & category is not empty)", colour="red")
             logging.info("Value should be greater than 0! or Category is empty")
         else:
-            if existing_total is None:
+            if existing_values is None:
                 show_message(message_label, text=f"No deposit made for the month {today.strftime('%B')}", colour="red")
                 logging.info("No funds allocated for the month!")
             else:
-                existing_total = existing_total[0]
-                if value > existing_total:
+                existing_available, existing_total = existing_values
+                if value > existing_available:
                     show_message(message_label, text="Insufficient Funds!", colour="red")
                     logging.info("Insufficient funds in the database add more!")
                 else:
-                    new_total = existing_total - value
+                    new_available = existing_available - value
                     if description.strip() == "":
                         description = "N/A"
                     # Entering main category to db
-                    cursor.execute("INSERT INTO Transactions (Date, Category, Description, Amount, Available) "
-                                   "VALUES (?, ?, ?, ?, ?)",
-                                   (today.strftime('%Y-%m-%d'), option, description, value, new_total))
+                    cursor.execute("INSERT INTO Transactions (Date, Category, Description, Amount, Available, Total) "
+                                   "VALUES (?, ?, ?, ?, ?, ?)",
+                                   (today.strftime('%Y-%m-%d'), option, description, value,
+                                    new_available, existing_total))
                     # Updating Available in db
-                    cursor.execute("UPDATE Transactions SET Available = ? WHERE strftime('%Y-%m', Date) = ? AND "
-                                   "Category = ?",
-                                   (new_total, formatted_date, "MONTHLY DEPOSIT!"))
+                    cursor.execute("UPDATE Transactions SET Available = ? WHERE strftime('%Y-%m', Date) = "
+                                   "? AND Category = ?",
+                                   (new_available, formatted_date, "MONTHLY DEPOSIT!"))
                     # Updating Every Available column in db
                     cursor.execute("UPDATE Transactions SET Available = ? WHERE strftime('%Y-%m', Date) = ?",
-                                   (new_total, formatted_date))
+                                   (new_available, formatted_date))
                     show_message(message_label, text="Success!", colour='green')
                     logging.info("Successfully Inserted & Updated the data into the database")
             connection.commit()
@@ -243,6 +249,8 @@ def gui():
         elif task == 'Convert':
             pass
 
+    Operations_box.bind('<<ComboboxSelected>>', get_value)
+
     entry_mappings = {
         deposit_entry: deposit_button,
         deduction_box: deduction_entry_description,
@@ -264,7 +272,14 @@ def gui():
         widgets.bind("<Return>", widget_handler)
     for buttons in [deposit_button, deduct_button]:
         buttons.bind("<Return>", widget_handler)
-    Operations_box.bind('<<ComboboxSelected>>', get_value)
+
+    # Closes the Application
+    def close():
+        if messagebox.askyesno(title="EXIT", message="Do You Wanna Quit? "):
+            window.destroy()
+            messagebox.showinfo(message="EXITED SUCCESSFULLY")
+
+    window.protocol("WM_DELETE_WINDOW", close)
     window.mainloop()
 
 

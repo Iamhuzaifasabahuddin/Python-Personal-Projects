@@ -12,7 +12,8 @@ cursor.execute('''
         Category TEXT NOT NULL,
         Description TEXT,
         Amount FLOAT NOT NULL,
-        Available FLOAT  NOT NULL)
+        Available FLOAT  NOT NULL,
+        Total FLOAT NOT NULL)
 ''')
 cursor.execute("SELECT * FROM Transactions")
 print("Table Created Successfully!")
