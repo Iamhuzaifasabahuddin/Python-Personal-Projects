@@ -140,7 +140,7 @@ def view(date, message_label, view_box: tk.scrolledtext.ScrolledText):
                 category = row[1]
                 amount = row[2]
 
-                view_box.insert(tk.END, f"{index}\t{date_str}\t\t{category}\t\t\t\t{amount}\n", "custom_font")
+                view_box.insert(tk.END, f"{index}\t{date_str}\t\t{category}\t\t\t\t£ {amount}\n", "custom_font")
                 spent += amount
                 available = row[3]
 
@@ -165,26 +165,42 @@ def gui():
     window = tk.Tk()
     window.title("EXPENSE'S SHEET")
 
-    centered(window, 700, 700)
+    centered(window, 500, 700)
     main_frame = tk.Frame()
     main_frame.pack(fill='both', expand=1)
 
+    # existing code
     canvas = tk.Canvas(main_frame)
+    vsb = tk.Scrollbar(main_frame, orient="vertical", command=canvas.yview)
+    hsb = tk.Scrollbar(main_frame, orient="horizontal", command=canvas.xview)
+    canvas.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+
+    vsb.pack(side='right', fill='y')
+    hsb.pack(side='bottom', fill='x')
     canvas.pack(side='left', fill='both', expand=1)
 
-    scrollbar = ttk.Scrollbar(main_frame, orient='vertical', command=canvas.yview)
-    scrollbar.pack(side='right', fill='y')
-
-    canvas.configure(yscrollcommand=scrollbar.set)
-    canvas.bind('<Configure>', lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+    # new code
+    canvas.update_idletasks()  # update canvas to get correct dimensions
+    canvas_width = canvas.winfo_width()
+    canvas_height = canvas.winfo_height()
+    x = canvas_width // 2
 
     content_frame = tk.Frame(canvas)
+    window_id = canvas.create_window((x, 0), window=content_frame, anchor="n")
 
-    canvas.create_window((0, 0), window=content_frame, anchor="nw")
+    def on_canvas_resize(event):
+        canvas_width = event.width
+        canvas_height = event.height
+        x = canvas_width // 2
+        canvas.coords(window_id, x, 0)
+
+    # Update scrollregion whenever content_frame is resized
+    content_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+
+    canvas.bind("<Configure>", on_canvas_resize)
 
     window_label = tk.Label(content_frame, text="Welcome To Expense Tracker!", font=("Quicksand", 25, "italic"))
     window_label.pack(pady=20)
-
     # Main listbox operations
     Operations = ["Add Amount", "Deduct Amount", "View Sheet", "Convert"]
     values = tk.StringVar()
@@ -251,8 +267,9 @@ def gui():
     view_frame = tk.Frame(content_frame)
     view_label_date = tk.Label(view_frame, text="Select a Month: ", font=("Quicksand", 15, "italic"))
     view_dates = Calendar(view_frame, date_pattern="y-mm-dd")
-    view_box = scrolledtext.ScrolledText(view_frame, wrap=tk.WORD, width=80, height=60)
-    view_button = tk.Button(view_frame, text="View", command=lambda: view(view_dates, global_message_label, view_box))
+    view_box = scrolledtext.ScrolledText(view_frame, wrap=tk.WORD, width=80, height=20)
+    view_button = tk.Button(view_frame, text="View", command=lambda: view(view_dates, global_message_label, view_box),
+                            font=("Quicksand", 15, "bold"))
 
     def deducted_Category(event=None):
         if Category.get() == "Other":
