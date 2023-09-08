@@ -1,11 +1,12 @@
 import datetime
-import pprint
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
+from dateutil.relativedelta import relativedelta
 from tkcalendar import Calendar
 import sqlite3
 import logging
 from typing import Callable
+from ttkthemes import ThemedStyle
 
 
 def show_message(message_label: tk.Label, text: str, colour: str, duration=2000):
@@ -14,12 +15,14 @@ def show_message(message_label: tk.Label, text: str, colour: str, duration=2000)
     message_label.after(duration, lambda: message_label.pack_forget())
 
 
-def deposit(value: float, message_label: tk.Label, toggle_deposit: Callable):
+def deposit(date: Calendar, value: str, message_label: tk.Label, toggle_deposit: Callable):
     try:
+        selected_date = date.parse_date(date.get_date())
         connection = sqlite3.connect('Expenses.db')
         cursor = connection.cursor()
-        today = datetime.date.today()
-        formatted_date = today.strftime('%Y-%m')
+        formatted_date = selected_date.strftime('%Y-%m')
+        value = float(value)
+
         if value <= 0:
             show_message(message_label, text="Amount should be greater than 0!", colour="red")
             logging.info(f"Invalid Input!")
@@ -36,34 +39,42 @@ def deposit(value: float, message_label: tk.Label, toggle_deposit: Callable):
                 cursor.execute(
                     "UPDATE Transactions SET Date = ?, Amount = ?, Available = ?, Total = ? "
                     "WHERE strftime('%Y-%m', Date) = ? AND Category = ?",
-                    (today.strftime('%Y-%m-%d'), value, new_available, new_total, formatted_date, "MONTHLY DEPOSIT!"))
+                    (selected_date.strftime('%Y-%m-%d'), value, new_available, new_total, formatted_date,
+                     "MONTHLY DEPOSIT!"))
                 # Update Available and Total columns
                 cursor.execute("UPDATE Transactions SET Available = ?, Total = ? WHERE strftime('%Y-%m', Date) = ?",
                                (new_available, new_total, formatted_date))
+                show_message(message_label,
+                             text=f"Deposit for month: {selected_date.strftime('%B')}\nValue: £{value} is Successful!\n"
+                                  f"Current balance: £{new_available}\nTotal amount deposited: £{new_total}",
+                             colour="green", duration=3000)
             else:
                 # Insert a new deposit record
                 cursor.execute("INSERT INTO Transactions (Date, Category, Amount, Available, Total) VALUES (?, ?, ?, "
                                "?, ?)",
-                               (today.strftime('%Y-%m-%d'), "MONTHLY DEPOSIT!", value, value, value))
-            show_message(message_label,
-                         text=f"Deposit for month: {today.strftime('%B')}\nValue: £{value} is Successful!\n"
-                              f"Current balance: £{new_available}\nTotal amount deposited: £{new_total}",
-                         colour="green", duration=3000)
+                               (selected_date.strftime('%Y-%m-%d'), "MONTHLY DEPOSIT!", value, value, value))
+                show_message(message_label,
+                             text=f"Deposit for month: {selected_date.strftime('%B')}\nValue: £{value} is Successful!\n",
+                             colour="green", duration=3000)
+            toggle_deposit(False)
             connection.commit()
             connection.close()
-            # toggle_deposit(False)
             logging.info("Successfully deposited the amount!")
-    except (ValueError, sqlite3.Error) as error:
-        show_message(message_label, text=f"Invalid Value Entered", colour="red")
-        logging.info(f"ERROR: {error}!")
+    except sqlite3.Error as error:
+        show_message(message_label, text=f"SQLite error: {error}", colour="red")
+        logging.error(f"SQLite error: {error}")
+    except (TypeError, ValueError) as error:
+        show_message(message_label, text=f"An error occurred: {error}", colour="red")
+        logging.error(f"An error occurred: {error}")
 
 
-def deduct(category: Callable, description: str, value: float, message_label: tk.Label, toggle_deduct: Callable):
+def deduct(date: Calendar, category: Callable, description: str, value: str, message_label: tk.Label,
+           toggle_deduct: Callable):
     try:
+        selected_date = date.parse_date(date.get_date())
         option = category()
-        today = datetime.date.today()
-        formatted_date = today.strftime('%Y-%m')
-
+        formatted_date = selected_date.strftime('%Y-%m')
+        value = float(value)
         connection = sqlite3.connect("Expenses.db")
         cursor = connection.cursor()
         # Fetch the existing total deposit for the current month
@@ -75,7 +86,8 @@ def deduct(category: Callable, description: str, value: float, message_label: tk
             logging.info("Value should be greater than 0! or Category is empty")
         else:
             if existing_values is None:
-                show_message(message_label, text=f"No deposit made for the month {today.strftime('%B')}", colour="red")
+                show_message(message_label, text=f"No deposit made for the month {selected_date.strftime('%B')}",
+                             colour="red")
                 logging.info("No funds allocated for the month!")
             else:
                 existing_available, existing_total = existing_values
@@ -89,17 +101,13 @@ def deduct(category: Callable, description: str, value: float, message_label: tk
                     # Entering main category to db
                     cursor.execute("INSERT INTO Transactions (Date, Category, Description, Amount, Available, Total) "
                                    "VALUES (?, ?, ?, ?, ?, ?)",
-                                   (today.strftime('%Y-%m-%d'), option, description, value,
+                                   (selected_date.strftime('%Y-%m-%d'), option, description, value,
                                     new_available, existing_total))
-                    # Updating Available in db
-                    cursor.execute("UPDATE Transactions SET Available = ? WHERE strftime('%Y-%m', Date) = "
-                                   "? AND Category = ?",
-                                   (new_available, formatted_date, "MONTHLY DEPOSIT!"))
-                    # Updating Every Available column in db
                     cursor.execute("UPDATE Transactions SET Available = ? WHERE strftime('%Y-%m', Date) = ?",
                                    (new_available, formatted_date))
-                    show_message(message_label, text="Success!", colour='green')
+                    show_message(message_label, text="Successfully added!", colour='green')
                     logging.info("Successfully Inserted & Updated the data into the database")
+            toggle_deduct(False)
             connection.commit()
             connection.close()
     except (ValueError, TypeError, sqlite3.Error) as error:
@@ -111,29 +119,38 @@ def convert():
     raise NotImplementedError
 
 
-def view(date, message_label, view_box: tk.scrolledtext.ScrolledText):
+def view(date: Calendar, message_label: tk.Label, view_box: tk.scrolledtext.ScrolledText):
     try:
         selected_date = date.parse_date(date.get_date())
         connection = sqlite3.connect("Expenses.db")
         cursor = connection.cursor()
+
+        # Calculate the start and end dates for the selected month
+        start_date = selected_date.strftime('%Y-%m-%d')
+        end_date = (selected_date + relativedelta(day=31)).strftime('%Y-%m-%d')
+
         results = cursor.execute(
-            "SELECT Date, Category, Amount, Available, Total FROM Transactions WHERE strftime('%Y-%m-%d', Date) >= ?",
-            (selected_date.strftime("%Y-%m-%d"),))
+            "SELECT Date, Category, Amount, Available, Total FROM Transactions WHERE Date BETWEEN ? AND ?"
+            "ORDER BY Date",
+            (start_date, end_date))
 
         data = results.fetchall()
         if not data:
             view_box.delete("1.0", tk.END)
-            show_message(message_label, text=f"No results found for the date {selected_date}", colour="red")
-            logging.info(f"No matches found for the dates {selected_date}")
+            show_message(message_label, text=f"No results found for the month of {selected_date.strftime('%B %Y')}",
+                         colour="red")
+            logging.info(f"No matches found for the month of {selected_date.strftime('%B %Y')}")
+            view_box.pack_forget()
         else:
             show_message(message_label, text="Getting results......", colour="green")
-            logging.info(f"Match found! for dates {selected_date}")
+            logging.info(f"Match found! for the month of {selected_date.strftime('%B %Y')}")
             view_box.delete("1.0", tk.END)
-            view_box.insert(tk.END, f"Expenses for the Month of {selected_date.strftime('%B')}\n\n", "custom_font")
+            view_box.insert(tk.END, f"Expenses for the Month of {selected_date.strftime('%B %Y')}\n\n", "custom_font")
             view_box.insert(tk.END, "S.NO\tDATE\t\tCATEGORY\t\t\t\tSPENT\n", "custom_font")
 
             spent = 0
             available = 0
+            total_deposit = 0
 
             for index, row in enumerate(data, start=1):
                 date_str = row[0]
@@ -143,12 +160,19 @@ def view(date, message_label, view_box: tk.scrolledtext.ScrolledText):
                 view_box.insert(tk.END, f"{index}\t{date_str}\t\t{category}\t\t\t\t£ {amount}\n", "custom_font")
                 spent += amount
                 available = row[3]
+                total_deposit = row[4]
 
-            view_box.insert(tk.END, f"\nTOTAL AVAILABLE: £{available}\nTOTAL SPENT: £{spent}", "custom_font")
+            view_box.insert(tk.END, f"\nTOTAL AVAILABLE: £{available}\nTOTAL SPENT: £{spent}\n"
+                                    f"TOTAL DEPOSITED: £{total_deposit}", "custom_font")
             view_box.after(2500, lambda: view_box.grid(row=3, column=0))
-    except (sqlite3.Error, TypeError, ValueError) as error:
-        show_message(message_label, text="An error occurred!", colour="red")
-        logging.info(f"An error occurred: {error}")
+
+        connection.close()
+    except sqlite3.Error as error:
+        show_message(message_label, text=f"SQLite error: {error}", colour="red")
+        logging.error(f"SQLite error: {error}")
+    except (TypeError, ValueError) as error:
+        show_message(message_label, text=f"An error occurred: {error}", colour="red")
+        logging.error(f"An error occurred: {error}")
 
 
 def centered(window: tk.Tk, width: int, height: int):
@@ -165,6 +189,8 @@ def gui():
     window = tk.Tk()
     window.title("EXPENSE'S SHEET")
 
+    style = ThemedStyle(window)
+    style.set_theme("breeze")
     centered(window, 500, 700)
     main_frame = tk.Frame()
     main_frame.pack(fill='both', expand=1)
@@ -216,6 +242,8 @@ def gui():
     deposit_frame = tk.Frame(content_frame)
     deposit_label = tk.Label(deposit_frame, text="Enter Your Deposit Amount: ", font=("Quicksand", 17, "italic"))
     deposit_value = tk.DoubleVar()
+    deposit_date_label = tk.Label(deposit_frame, text="Select a Date for deposit: ", font=("Quicksand", 17, "italic"))
+    deposit_calendar = Calendar(deposit_frame, date_pattern="y-mm-dd")
     # Create a Label to display the pound symbol (£)
     pound_label = tk.Label(deposit_frame, text="£", font=("Quicksand", 15))
     deposit_entry = ttk.Spinbox(
@@ -223,16 +251,31 @@ def gui():
         from_=0,
         to=9999999999999,
         textvariable=deposit_value,
-        wrap=True,
+        wrap=False,  # Dont want user to go over the limit
         increment=0.01,
         font=("Quicksand", 15)
     )
     deposit_button = tk.Button(
         deposit_frame,
         text="Deposit",
-        command=lambda: deposit(float(deposit_entry.get()), global_message_label, toggle_deposit),
+        command=lambda: deposit(deposit_calendar, deposit_entry.get(), global_message_label, toggle_deposit),
         font=("Quicksand", 15, "bold")
     )
+    months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
+              "November", "December"]
+    years = [str(year) for year in range(2000, 2050)]
+    month_val = tk.StringVar()
+    year_val = tk.StringVar()
+
+    month_box = ttk.Combobox(deposit_frame, textvariable=month_val, font=("Quicksand", 15, "italic"))
+    month_box.set("January")
+    month_box['values'] = months
+    month_box['state'] = 'readonly'
+    year_box = ttk.Combobox(deposit_frame, textvariable=year_val, font=("Quicksand", 15, "italic"))
+    current_year = datetime.date.today().year
+    year_box.set(str(current_year))
+    year_box['values'] = years
+    year_box['state'] = 'readonly'
 
     # Deduction fields
     deduction_frame = tk.Frame(content_frame)
@@ -242,6 +285,8 @@ def gui():
     deduction_box = ttk.Combobox(deduction_frame, textvariable=Category, font=("Quicksand", 15, "italic"))
     deduction_box['values'] = Categories
     deduction_box['state'] = 'readonly'
+    deduct_cal_label = tk.Label(deduction_frame, text="Select a date: ", font=("Quicksand", 15, "italic"))
+    deduction_calendar = Calendar(deduction_frame, date_pattern="y-mm-dd")
     deduction_description = tk.Label(deduction_frame, text="Enter a description: ", font=("Quicksand", 17, "italic"))
     deduction_entry_description = tk.Entry(deduction_frame, font=("Quicksand", 15, "italic"))
     pound_label_deduct = tk.Label(deduction_frame, text="£", font=("Quicksand", 17))
@@ -252,19 +297,20 @@ def gui():
         from_=0,
         to=9999999999999,
         textvariable=deduction_value,
-        wrap=True,
+        wrap=False,  # Dont want user to go over the limit
         increment=0.01,
         font=("Quicksand", 15)
     )
-    deduct_button = tk.Button(deduction_frame, text="Deduct", command=lambda: deduct(deducted_Category,
-                                                                                     deduction_entry_description.get(),
-                                                                                     float(deduction_entry_value.get()),
-                                                                                     global_message_label,
-                                                                                     toggle_deduct),
+    deduct_button = tk.Button(deduction_frame, text="Deduct",
+                              command=lambda: deduct(deduction_calendar, deducted_Category,
+                                                     deduction_entry_description.get(),
+                                                     deduction_entry_value.get(),
+                                                     global_message_label,
+                                                     toggle_deduct),
                               font=("Quicksand", 15, "bold"))
+    view_frame = tk.Frame(content_frame)
 
     # View fields
-    view_frame = tk.Frame(content_frame)
     view_label_date = tk.Label(view_frame, text="Select a Month: ", font=("Quicksand", 15, "italic"))
     view_dates = Calendar(view_frame, date_pattern="y-mm-dd")
     view_box = scrolledtext.ScrolledText(view_frame, wrap=tk.WORD, width=80, height=20)
@@ -279,30 +325,42 @@ def gui():
             deduction_box.config(state='readonly')
         return Category.get()
 
+    def get_month_year(event=None):
+        selected_month = month_val.get()
+        selected_year = year_val.get()
+        return selected_month, selected_year
+
+    # Bind the function to the Comboboxes
+    month_box.bind("<<ComboboxSelected>>", get_month_year)
+    year_box.bind("<<ComboboxSelected>>", get_month_year)
     deduction_box.bind("<<ComboboxSelected>>", deducted_Category)
 
     def toggle_deposit(enable):
         if enable:
-            deposit_label.grid(row=0, column=1, pady=10)
-            pound_label.grid(row=1, column=0, padx=2)
-            deposit_entry.grid(row=1, column=1)
-            deposit_button.grid(row=2, column=1, columnspan=2, pady=10)  # Center-align the button
+            deposit_date_label.grid(row=0, column=1, pady=10)
+            deposit_calendar.grid(row=1, column=1, pady=10)
+            deposit_label.grid(row=2, column=1, pady=10)
+            pound_label.grid(row=3, column=0, padx=2)
+            deposit_entry.grid(row=3, column=1)
+            deposit_button.grid(row=4, column=1, columnspan=2, pady=10)  # Center-align the button
             deposit_frame.pack()
         else:
-            deposit_label.pack_forget()
             deposit_frame.pack_forget()
+            deposit_entry.delete(0, tk.END)
 
     def toggle_deduct(enable):
         if enable:
-            deduct_label_category.grid(row=0, column=1, pady=10)
+            deduct_label_category.grid(row=0, column=1)
             deduction_box.grid(row=1, column=1, pady=5)
             deducted_Category()
-            deduction_description.grid(row=2, column=1, pady=10)
-            deduction_entry_description.grid(row=3, column=1, pady=5)
-            deduction_value_label.grid(row=4, column=1, pady=10)
-            pound_label_deduct.grid(row=5, column=0, padx=2, pady=5)
-            deduction_entry_value.grid(row=5, column=1, pady=5)
-            deduct_button.grid(row=6, column=0, columnspan=2, pady=10)
+            deduct_cal_label.grid(row=2, column=1)
+            deduction_calendar.grid(row=3, column=1, pady=10)
+            deduction_description.grid(row=4, column=1)
+            deduction_entry_description.grid(row=5, column=1, pady=5)
+            deduction_value_label.grid(row=6, column=1, pady=10)
+            pound_label_deduct.grid(row=7, column=0, padx=2, pady=5)
+            deduction_entry_value.grid(row=7, column=1, pady=5)
+            deduct_button.grid(row=8, column=0, columnspan=2, pady=10)
             deduction_frame.pack()
 
         else:
@@ -342,7 +400,8 @@ def gui():
     Operations_box.bind('<<ComboboxSelected>>', get_value)
 
     entry_mappings = {
-        deposit_entry: deposit_button,
+        deposit_entry: deposit_calendar,
+        deposit_calendar: deposit_button,
         deduction_box: deduction_entry_description,
         deduction_entry_description: deduction_entry_value,
         deduction_entry_value: deduct_button
