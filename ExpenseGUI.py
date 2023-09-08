@@ -111,9 +111,12 @@ def deduct(date: Calendar, category: Callable, description: str, value: str, mes
             toggle_deduct(False)
             connection.commit()
             connection.close()
-    except (ValueError, TypeError, sqlite3.Error) as error:
-        show_message(message_label, text=f"{error}", colour='red')
-        logging.info(f"ERROR: {error}!")
+    except sqlite3.Error as error:
+        show_message(message_label, text=f"SQLite error: {error}", colour="red")
+        logging.error(f"SQLite error: {error}")
+    except (TypeError, ValueError) as error:
+        show_message(message_label, text=f"An error occurred: {error}", colour="red")
+        logging.error(f"An error occurred: {error}")
 
 
 def convert():
