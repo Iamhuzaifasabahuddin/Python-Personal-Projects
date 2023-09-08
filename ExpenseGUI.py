@@ -1,4 +1,5 @@
 import datetime
+import pprint
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
 from tkcalendar import Calendar
@@ -110,9 +111,44 @@ def convert():
     raise NotImplementedError
 
 
-def view(date, message_label):
-    dated = date.get_displayed_month()
-    show_message(message_label, text=f"{dated}", colour="green")
+def view(date, message_label, view_box: tk.scrolledtext.ScrolledText):
+    try:
+        selected_date = date.parse_date(date.get_date())
+        connection = sqlite3.connect("Expenses.db")
+        cursor = connection.cursor()
+        results = cursor.execute(
+            "SELECT Date, Category, Amount, Available, Total FROM Transactions WHERE strftime('%Y-%m-%d', Date) >= ?",
+            (selected_date.strftime("%Y-%m-%d"),))
+
+        data = results.fetchall()
+        if not data:
+            view_box.delete("1.0", tk.END)
+            show_message(message_label, text=f"No results found for the date {selected_date}", colour="red")
+            logging.info(f"No matches found for the dates {selected_date}")
+        else:
+            show_message(message_label, text="Getting results......", colour="green")
+            logging.info(f"Match found! for dates {selected_date}")
+            view_box.delete("1.0", tk.END)
+            view_box.insert(tk.END, f"Expenses for the Month of {selected_date.strftime('%B')}\n\n", "custom_font")
+            view_box.insert(tk.END, "S.NO\tDATE\t\tCATEGORY\t\t\t\tSPENT\n", "custom_font")
+
+            spent = 0
+            available = 0
+
+            for index, row in enumerate(data, start=1):
+                date_str = row[0]
+                category = row[1]
+                amount = row[2]
+
+                view_box.insert(tk.END, f"{index}\t{date_str}\t\t{category}\t\t\t\t{amount}\n", "custom_font")
+                spent += amount
+                available = row[3]
+
+            view_box.insert(tk.END, f"\nTOTAL AVAILABLE: £{available}\nTOTAL SPENT: £{spent}", "custom_font")
+            view_box.after(2500, lambda: view_box.grid(row=3, column=0))
+    except (sqlite3.Error, TypeError, ValueError) as error:
+        show_message(message_label, text="An error occurred!", colour="red")
+        logging.info(f"An error occurred: {error}")
 
 
 def centered(window: tk.Tk, width: int, height: int):
@@ -129,27 +165,41 @@ def gui():
     window = tk.Tk()
     window.title("EXPENSE'S SHEET")
 
-    main_frame = tk.Frame(centered(window, 700, 700))
-    window_label = tk.Label(main_frame, text="Welcome To Expense Tracker!", font=("Quicksand", 25, "italic"))
+    centered(window, 700, 700)
+    main_frame = tk.Frame()
+    main_frame.pack(fill='both', expand=1)
+
+    canvas = tk.Canvas(main_frame)
+    canvas.pack(side='left', fill='both', expand=1)
+
+    scrollbar = ttk.Scrollbar(main_frame, orient='vertical', command=canvas.yview)
+    scrollbar.pack(side='right', fill='y')
+
+    canvas.configure(yscrollcommand=scrollbar.set)
+    canvas.bind('<Configure>', lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+
+    content_frame = tk.Frame(canvas)
+
+    canvas.create_window((0, 0), window=content_frame, anchor="nw")
+
+    window_label = tk.Label(content_frame, text="Welcome To Expense Tracker!", font=("Quicksand", 25, "italic"))
     window_label.pack(pady=20)
-    main_frame.pack(anchor="center")
 
     # Main listbox operations
     Operations = ["Add Amount", "Deduct Amount", "View Sheet", "Convert"]
     values = tk.StringVar()
-    Operations_label = tk.Label(main_frame, text="Select a Task: ", font=("Quicksand", 15, "italic"))
-    Operations_box = ttk.Combobox(main_frame, textvariable=values, font=("Quicksand", 15, "italic"))
+    Operations_label = tk.Label(content_frame, text="Select a Task: ", font=("Quicksand", 15, "italic"))
+    Operations_box = ttk.Combobox(content_frame, textvariable=values, font=("Quicksand", 15, "italic"))
     Operations_box['values'] = Operations
     Operations_box['state'] = 'readonly'
     Operations_label.pack(pady=5)
     Operations_box.pack()
-    global_message_label = tk.Label(main_frame, text="", font=("Quicksand", 15, "italic"))
+    global_message_label = tk.Label(content_frame, text="", font=("Quicksand", 15, "italic"))
 
     # Deposit fields
-    deposit_label = tk.Label(main_frame, text="Enter Your Deposit Amount: ", font=("Quicksand", 17, "italic"))
+    deposit_frame = tk.Frame(content_frame)
+    deposit_label = tk.Label(deposit_frame, text="Enter Your Deposit Amount: ", font=("Quicksand", 17, "italic"))
     deposit_value = tk.DoubleVar()
-    # Create a Frame to hold the pound symbol (£) and the entry field
-    deposit_frame = tk.Frame(main_frame)
     # Create a Label to display the pound symbol (£)
     pound_label = tk.Label(deposit_frame, text="£", font=("Quicksand", 15))
     deposit_entry = ttk.Spinbox(
@@ -169,7 +219,7 @@ def gui():
     )
 
     # Deduction fields
-    deduction_frame = tk.Frame(main_frame)
+    deduction_frame = tk.Frame(content_frame)
     Categories = ["", "Food", "Entertainment", "Business", "Shopping", "Misc", "Other"]
     deduct_label_category = tk.Label(deduction_frame, text="Select a category: ", font=("Quicksand", 17, "italic"))
     Category = tk.StringVar()
@@ -198,12 +248,11 @@ def gui():
                               font=("Quicksand", 15, "bold"))
 
     # View fields
-    view_frame = tk.Frame(main_frame)
+    view_frame = tk.Frame(content_frame)
     view_label_date = tk.Label(view_frame, text="Select a Month: ", font=("Quicksand", 15, "italic"))
-    view_dates = Calendar(view_frame)
-    view_box = scrolledtext.ScrolledText(view_frame, wrap=tk.WORD, width=60, height=40)
-
-    view_button = tk.Button(view_frame, text="View", command=lambda: view(view_dates, global_message_label))
+    view_dates = Calendar(view_frame, date_pattern="y-mm-dd")
+    view_box = scrolledtext.ScrolledText(view_frame, wrap=tk.WORD, width=80, height=60)
+    view_button = tk.Button(view_frame, text="View", command=lambda: view(view_dates, global_message_label, view_box))
 
     def deducted_Category(event=None):
         if Category.get() == "Other":
@@ -217,10 +266,10 @@ def gui():
 
     def toggle_deposit(enable):
         if enable:
-            deposit_label.pack(pady=10)
-            pound_label.grid(row=0, column=0, padx=5)
-            deposit_entry.grid(row=0, column=1)
-            deposit_button.grid(row=1, column=0, columnspan=2, pady=10)  # Center-align the button
+            deposit_label.grid(row=0, column=1, pady=10)
+            pound_label.grid(row=1, column=0, padx=2)
+            deposit_entry.grid(row=1, column=1)
+            deposit_button.grid(row=2, column=1, columnspan=2, pady=10)  # Center-align the button
             deposit_frame.pack()
         else:
             deposit_label.pack_forget()
@@ -251,11 +300,13 @@ def gui():
             view_dates.grid(row=1, column=0, pady=10)
             view_button.grid(row=2, column=0, columnspan=2, pady=10)
             view_box.config(state='normal')
+            view_box.tag_configure("custom_font", font=("Quicksand", 15), foreground="black")
             view_frame.pack()
 
         else:
             view_frame.pack_forget()
             view_box.config(state='disabled')
+
     def get_value(event):
         task = values.get()
         if task == 'Add Amount':
