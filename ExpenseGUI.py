@@ -1,4 +1,5 @@
 import datetime
+import pprint
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
 from dateutil.relativedelta import relativedelta
@@ -190,12 +191,12 @@ def gui():
     window.title("EXPENSE'S SHEET")
 
     style = ThemedStyle(window)
-    style.set_theme("breeze")
+    style.set_theme("kroc")
+    # pprint.pprint(style.theme_names())
     centered(window, 500, 700)
     main_frame = tk.Frame()
     main_frame.pack(fill='both', expand=1)
 
-    # existing code
     canvas = tk.Canvas(main_frame)
     vsb = tk.Scrollbar(main_frame, orient="vertical", command=canvas.yview)
     hsb = tk.Scrollbar(main_frame, orient="horizontal", command=canvas.xview)
@@ -205,10 +206,9 @@ def gui():
     hsb.pack(side='bottom', fill='x')
     canvas.pack(side='left', fill='both', expand=1)
 
-    # new code
     canvas.update_idletasks()  # update canvas to get correct dimensions
     canvas_width = canvas.winfo_width()
-    canvas_height = canvas.winfo_height()
+    # canvas_height = canvas.winfo_height()
     x = canvas_width // 2
 
     content_frame = tk.Frame(canvas)
@@ -216,13 +216,14 @@ def gui():
 
     def on_canvas_resize(event):
         canvas_width = event.width
-        canvas_height = event.height
+        # canvas_height = event.height
         x = canvas_width // 2
         canvas.coords(window_id, x, 0)
 
     # Update scrollregion whenever content_frame is resized
     content_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
 
+    # Update canvas whenever its resized
     canvas.bind("<Configure>", on_canvas_resize)
 
     window_label = tk.Label(content_frame, text="Welcome To Expense Tracker!", font=("Quicksand", 25, "italic"))
