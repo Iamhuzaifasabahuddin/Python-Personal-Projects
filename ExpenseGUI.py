@@ -1,22 +1,34 @@
 import datetime
-import pprint
+import logging
+from numerize import numerize
+import sqlite3
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
+from typing import Callable
+
+import pandas as pd
 from dateutil.relativedelta import relativedelta
 from tkcalendar import Calendar
-import sqlite3
-import logging
-from typing import Callable
 from ttkthemes import ThemedStyle
+import openpyxl
 
 
-def show_message(message_label: tk.Label, text: str, colour: str, duration=2000):
+def show_message(message_label: tk.Label, text: str, colour: str, duration=2000) -> None:
+    """
+       Display a message on the GUI.
+
+       Args:
+           message_label (tk.Label): The label widget to display the message.
+           text (str): The message text.
+           colour (str): The color of the message text.
+           duration (int, optional): Duration in milliseconds to display the message. Default is 2000ms.
+       """
     message_label.config(text=text, fg=colour)
     message_label.pack(pady=10)
     message_label.after(duration, lambda: message_label.pack_forget())
 
 
-def deposit(date: Calendar, value: str, message_label: tk.Label, toggle_deposit: Callable):
+def deposit(date: Calendar, value: str, message_label: tk.Label, toggle_deposit: Callable) -> None:
     try:
         selected_date = date.parse_date(date.get_date())
         connection = sqlite3.connect('Expenses.db')
@@ -48,15 +60,18 @@ def deposit(date: Calendar, value: str, message_label: tk.Label, toggle_deposit:
                 show_message(message_label,
                              text=f"Deposit for month: {selected_date.strftime('%B')}\nValue: £{value} is Successful!\n"
                                   f"Current balance: £{new_available}\nTotal amount deposited: £{new_total}",
-                             colour="green", duration=3000)
+                             colour="green", duration=7000)
+                messagebox.showinfo(f"{selected_date.strftime('%B')} TRANSCTIONS", f"Value: £{value} is Successful!\n"
+                                                                                   f"Current balance: £{new_available}"
+                                                                                   f"\nTotal amount deposited: £{new_total}")
             else:
-                # Insert a new deposit record
                 cursor.execute("INSERT INTO Transactions (Date, Category, Amount, Available, Total) VALUES (?, ?, ?, "
                                "?, ?)",
                                (selected_date.strftime('%Y-%m-%d'), "MONTHLY DEPOSIT!", value, value, value))
                 show_message(message_label,
                              text=f"Deposit for month: {selected_date.strftime('%B')}\nValue: £{value} is Successful!\n",
-                             colour="green", duration=3000)
+                             colour="green", duration=7000)
+                messagebox.showinfo(f"{selected_date.strftime('%B')} Deposit", f"Deposit of £{value} Successful")
             toggle_deposit(False)
             connection.commit()
             connection.close()
@@ -70,7 +85,7 @@ def deposit(date: Calendar, value: str, message_label: tk.Label, toggle_deposit:
 
 
 def deduct(date: Calendar, category: Callable, description: str, value: str, message_label: tk.Label,
-           toggle_deduct: Callable):
+           toggle_deduct: Callable) -> None:
     try:
         selected_date = date.parse_date(date.get_date())
         option = category()
@@ -119,11 +134,32 @@ def deduct(date: Calendar, category: Callable, description: str, value: str, mes
         logging.error(f"An error occurred: {error}")
 
 
-def convert():
-    raise NotImplementedError
+def convert(convert_type: str, calendar: Callable, message_label: tk.Label) -> None:
+    if convert_type == "Excel":
+        month, year = calendar()
+        connection = sqlite3.connect('Expenses.db')
+        selected = datetime.datetime.strptime(month, '%B')
+        formatted = selected.replace(year=int(year), day=1).strftime('%Y-%m')
+        query = "SELECT * FROM Transactions WHERE strftime('%Y-%m', Date) = ?"
+        params = (formatted,)
+
+        df = pd.read_sql_query(query, connection, params=params)
+
+        connection.close()
+        excel_file = f'{month}_sheet.xlsx'
+        df['Total Spent'] = df['Amount'].iloc[1:].cumsum()
+        columns_to_convert = ["Amount", "Available", "Total"]
+        for column in columns_to_convert:
+            df[column] = df[column].apply(lambda x: '£' + numerize.numerize(int(x)))
+        df.drop(columns=['Description'], inplace=True)
+        df['Total Spent'].fillna(0, inplace=True)
+        df['Total Spent'] = df['Total Spent'].apply(lambda x: '£' + numerize.numerize(int(x)))
+        df.to_excel(excel_file, index=False, engine='openpyxl')
+
+        show_message(message_label, text=f"{excel_file}\nCreated Successfully!", colour="green")
 
 
-def view(date: Calendar, message_label: tk.Label, view_box: tk.scrolledtext.ScrolledText):
+def view(date: Calendar, message_label: tk.Label, view_box: tk.scrolledtext.ScrolledText) -> None:
     try:
         selected_date = date.parse_date(date.get_date())
         connection = sqlite3.connect("Expenses.db")
@@ -179,7 +215,7 @@ def view(date: Calendar, message_label: tk.Label, view_box: tk.scrolledtext.Scro
         logging.error(f"An error occurred: {error}")
 
 
-def centered(window: tk.Tk, width: int, height: int):
+def centered(window: tk.Tk, width: int, height: int) -> None:
     try:
         screen_width, screen_height = window.winfo_screenwidth(), window.winfo_screenheight()
         centered_width, centered_height = (screen_width - width) // 2, (screen_height - height) // 2
@@ -188,7 +224,7 @@ def centered(window: tk.Tk, width: int, height: int):
         print(f"An Error occurred {error}")
 
 
-def gui():
+def gui() -> None:
     # Creating and main window operations
     window = tk.Tk()
     window.title("EXPENSE'S SHEET")
@@ -265,21 +301,6 @@ def gui():
         command=lambda: deposit(deposit_calendar, deposit_entry.get(), global_message_label, toggle_deposit),
         font=("Quicksand", 15, "bold")
     )
-    months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
-              "November", "December"]
-    years = [str(year) for year in range(2000, 2050)]
-    month_val = tk.StringVar()
-    year_val = tk.StringVar()
-
-    month_box = ttk.Combobox(deposit_frame, textvariable=month_val, font=("Quicksand", 15, "italic"))
-    month_box.set("January")
-    month_box['values'] = months
-    month_box['state'] = 'readonly'
-    year_box = ttk.Combobox(deposit_frame, textvariable=year_val, font=("Quicksand", 15, "italic"))
-    current_year = datetime.date.today().year
-    year_box.set(str(current_year))
-    year_box['values'] = years
-    year_box['state'] = 'readonly'
 
     # Deduction fields
     deduction_frame = tk.Frame(content_frame)
@@ -321,7 +342,39 @@ def gui():
     view_button = tk.Button(view_frame, text="View", command=lambda: view(view_dates, global_message_label, view_box),
                             font=("Quicksand", 15, "bold"))
 
-    def deducted_Category(event=None):
+    # Convert fields
+    months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
+              "November", "December"]
+    years = [str(year) for year in range(2000, 2050)]
+    month_val = tk.StringVar()
+    year_val = tk.StringVar()
+    convert_frame = tk.Frame(content_frame)
+    month_label = tk.Label(convert_frame, text="Select a month: ", font=("Quicksand", 15, "italic"))
+    month_box = ttk.Combobox(convert_frame, textvariable=month_val, font=("Quicksand", 15, "italic"))
+    current_month = datetime.date.today().strftime('%B')
+    month_box.set(current_month)
+    month_box['values'] = months
+    month_box['state'] = 'readonly'
+    year_label = tk.Label(convert_frame, text="Select a year: ", font=("Quicksand", 15, "italic"))
+    year_box = ttk.Combobox(convert_frame, textvariable=year_val, font=("Quicksand", 15, "italic"))
+    current_year = datetime.date.today().year
+    year_box.set(str(current_year))
+    year_box['values'] = years
+    year_box['state'] = 'readonly'
+
+    convert_label = tk.Label(convert_frame, text="Select conversion method: ", font=("Quicksand", 17, "italic"))
+    conversions = ['Excel', 'Pandas', 'CSV', 'Bar Graph', 'Pie Chart', 'Line Chart', 'Histogram']
+    convert_selection = tk.StringVar()
+    convert_main_box = ttk.Combobox(convert_frame, textvariable=convert_selection, font=("Quicksand", 15, "italic"))
+    convert_main_box['values'] = conversions
+    convert_main_box['state'] = 'readonly'
+
+    convert_button = tk.Button(convert_frame, text="Convert", command=lambda: convert(convert_selection.get(),
+                                                                                      get_month_year,
+                                                                                      global_message_label),
+                               font=("Quicksand", 15, "bold"))
+
+    def deducted_Category(event=None) -> str:
         if Category.get() == "Other":
             deduct_label_category.config(text="Enter Your Category: ")
             deduction_box.config(state='normal')
@@ -329,7 +382,7 @@ def gui():
             deduction_box.config(state='readonly')
         return Category.get()
 
-    def get_month_year(event=None):
+    def get_month_year(event=None) -> tuple[str, str]:
         selected_month = month_val.get()
         selected_year = year_val.get()
         return selected_month, selected_year
@@ -339,7 +392,7 @@ def gui():
     year_box.bind("<<ComboboxSelected>>", get_month_year)
     deduction_box.bind("<<ComboboxSelected>>", deducted_Category)
 
-    def toggle_deposit(enable):
+    def toggle_deposit(enable) -> None:
         if enable:
             deposit_date_label.grid(row=0, column=1, pady=10)
             deposit_calendar.grid(row=1, column=1, pady=10)
@@ -349,10 +402,10 @@ def gui():
             deposit_button.grid(row=4, column=1, columnspan=2, pady=10)  # Center-align the button
             deposit_frame.pack()
         else:
-            deposit_frame.pack_forget()
             deposit_entry.delete(0, tk.END)
+            deposit_frame.pack_forget()
 
-    def toggle_deduct(enable):
+    def toggle_deduct(enable) -> None:
         if enable:
             deduct_label_category.grid(row=0, column=1)
             deduction_box.grid(row=1, column=1, pady=5)
@@ -373,7 +426,7 @@ def gui():
             deduction_box.set(Categories[0])
             deduction_frame.pack_forget()
 
-    def toggle_view(enable):
+    def toggle_view(enable) -> None:
         if enable:
             view_label_date.grid(row=0, column=0, pady=10)
             view_dates.grid(row=1, column=0, pady=10)
@@ -386,20 +439,41 @@ def gui():
             view_frame.pack_forget()
             view_box.config(state='disabled')
 
-    def get_value(event):
+    def toggle_convert(enable):
+        if enable:
+            convert_label.grid(row=0, column=0, pady=5)
+            convert_main_box.grid(row=1, column=0, pady=5)
+            month_label.grid(row=2, column=0, pady=5)
+            month_box.grid(row=3, column=0, pady=5)
+            year_label.grid(row=4, column=0, pady=5)
+            year_box.grid(row=5, column=0, pady=5)
+            convert_button.grid(row=6, column=0, columnspan=2, pady=5)
+            convert_frame.pack()
+        else:
+            convert_frame.pack_forget()
+
+    def get_value(event) -> None:
         task = values.get()
         if task == 'Add Amount':
             toggle_deposit(True)
             toggle_deduct(False)
+            toggle_view(False)
+            toggle_convert(False)
         elif task == 'Deduct Amount':
-            toggle_deposit(False)
             toggle_deduct(True)
+            toggle_deposit(False)
+            toggle_view(False)
+            toggle_convert(False)
         elif task == 'View Sheet':
+            toggle_view(True)
             toggle_deposit(False)
             toggle_deduct(False)
-            toggle_view(True)
+            toggle_convert(False)
         elif task == 'Convert':
-            pass
+            toggle_convert(True)
+            toggle_deposit(False)
+            toggle_deduct(False)
+            toggle_view(False)
 
     Operations_box.bind('<<ComboboxSelected>>', get_value)
 
@@ -408,26 +482,27 @@ def gui():
         deposit_calendar: deposit_button,
         deduction_box: deduction_entry_description,
         deduction_entry_description: deduction_entry_value,
-        deduction_entry_value: deduct_button
+        deduction_entry_value: deduct_button,
     }
 
-    def widget_handler(event):
+    def widget_handler(event) -> None:
         current = window.focus_get()
         for widget, next_widget in entry_mappings.items():
             if widget == current:
                 next_widget.focus()
                 break
-        for button in [deposit_button, deduct_button]:
+        for button in [deposit_button, deduct_button, view_button]:
             if current == button:
                 button.invoke()
+        view_button.focus_set()
 
     for widgets in entry_mappings:
         widgets.bind("<Return>", widget_handler)
-    for buttons in [deposit_button, deduct_button]:
+    for buttons in [deposit_button, deduct_button, view_button]:
         buttons.bind("<Return>", widget_handler)
 
     # Closes the Application
-    def close():
+    def close() -> None:
         if messagebox.askyesno(title="EXIT", message="Do You Wanna Quit? "):
             window.destroy()
             messagebox.showinfo(message="EXITED SUCCESSFULLY")
@@ -436,13 +511,14 @@ def gui():
     window.mainloop()
 
 
-def logging_function():
-    logging.basicConfig(level=logging.INFO, format='%(funcName)s - %(message)s - %(asctime)s - %(levelname)s',
+def logging_function() -> None:
+    """Creates a console and file logging handler that logs messages"""
+    logging.basicConfig(level=logging.INFO, format='%(funcName)s --> %(message)s : %(asctime)s - %(levelname)s',
                         datefmt="%Y-%m-%d %I:%M:%S %p")
 
     File_handler = logging.FileHandler('Expenses.log')
     File_handler.setLevel(level=logging.WARNING)
-    Format = logging.Formatter('%(funcName)s - %(message)s - %(asctime)s - %(levelname)s',
+    Format = logging.Formatter('%(funcName)s --> %(message)s : %(asctime)s - %(levelname)s',
                                "%Y-%m-%d %I:%M:%S %p")
     File_handler.setFormatter(Format)
 
