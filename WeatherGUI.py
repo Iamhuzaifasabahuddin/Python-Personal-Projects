@@ -1,6 +1,7 @@
 import datetime
 import json
 import logging
+import statistics
 import tkinter as tk
 import tkinter.scrolledtext
 from tkinter import scrolledtext, messagebox, ttk
@@ -176,31 +177,40 @@ def forecast(location, days, message_label, forecast_listbox: tk.scrolledtext.Sc
                 "cnt": days * 8  # 3 hours interval for the api for each day
             }
 
-            daily_forecast = []
+            daily_forecast = {}
             forecast_response = requests.get(forecast_url, params=params)
             results = forecast_response.json()
-            for data in results['list'][1::8]:  # Use ::8 due to 3 hours timespan, get the 8th value excluding today
+            for data in results['list'][1::]:
                 day_timestamp = data['dt']
                 day = datetime.datetime.fromtimestamp(day_timestamp).strftime("%A")
                 converted_c_min, converted_f_min = convert(data['main']['temp_min'])
                 converted_c_max, converted_f_max = convert(data['main']['temp_max'])
-                daily_forecast.append(
-                    {
-                        "day": day,
-                        "min_temp": f"{converted_c_min:.2f}°C/ {converted_f_min:.2f}°F",
-                        "max_temp": f"{converted_c_max:.2f}°C/ {converted_f_max:.2f}°F",
-                        "description": data["weather"][0]['description']
+
+                if day not in daily_forecast:
+                    daily_forecast[day] = {
+                        "min_temps": [],
+                        "max_temps": [],
+                        "descriptions": []
                     }
-                )
+
+                daily_forecast[day]["min_temps"].append(converted_c_min)
+                daily_forecast[day]["max_temps"].append(converted_c_max)
+                daily_forecast[day]["descriptions"].append(data["weather"][0]['description'])
 
             show_message(message_label, text=f"Getting Forecast for {days} Days...", colour="green")
             logging.info("Getting Forecast From The API!")
             forecast_listbox.insert(tk.END, f"Forecast For The Next {days} Days For {location.capitalize()}:\n\n",
                                     "custom_font")
-            for values in daily_forecast:
-                forecast_listbox.insert(tk.END, f"Day: {values['day']}\nMinimum Temperature: {values['min_temp']}\n"
-                                                f"Maximum Temperature: {values['max_temp']}\nWeather: {values['description']}\n\n",
-                                        "custom_font")
+
+            for day, data in daily_forecast.items():
+                avg_min_temp = sum(data["min_temps"]) / len(data["min_temps"])
+                avg_max_temp = sum(data["max_temps"]) / len(data["max_temps"])
+                avg_description = statistics.mode(data["descriptions"])
+
+                forecast_listbox.insert(tk.END, f"Day: {day}\nAverage Minimum Temperature: {avg_min_temp:.2f}°C\n"
+                                                f"Average Maximum Temperature: {avg_max_temp:.2f}°C\n"
+                                                f"Mode Weather: {avg_description}\n\n", "custom_font")
+
             forecast_listbox.after(2000, lambda: forecast_listbox.pack(pady=10))
             logging.info("Forecast From The API Displayed Successfully!")
             forecast_toggle(False)
@@ -265,31 +275,42 @@ def weather_and_forecast(location: str, days: int, wflistbox: tkinter.scrolledte
             feels_like_celsius, feels_like_fahrenheit = convert(feels_like)
             celsius, fahrenheit = convert(temperature)
 
-            forecasted_Data = []
-            for data in forecast_response['list'][::8]:
+            forecasted_Data = {}
+            for data in forecast_response['list']:
                 day_timestamp = data['dt']
                 day = datetime.datetime.fromtimestamp(day_timestamp).strftime("%A")
                 converted_c_min, converted_f_min = convert(data['main']['temp_min'])
                 converted_c_max, converted_f_max = convert(data['main']['temp_max'])
-                forecasted_Data.append(
-                    {
-                        "day": day,
-                        "min_temp": f"{converted_c_min:.2f}°C/ {converted_f_min:.2f}°F",
-                        "max_temp": f"{converted_c_max:.2f}°C/ {converted_f_max:.2f}°F",
-                        "description": data["weather"][0]['description']
+
+                if day not in forecasted_Data:
+                    forecasted_Data[day] = {
+                        "min_temps": [],
+                        "max_temps": [],
+                        "descriptions": []
                     }
-                )
+
+                forecasted_Data[day]["min_temps"].append(converted_c_min)
+                forecasted_Data[day]["max_temps"].append(converted_c_max)
+                forecasted_Data[day]["descriptions"].append(data["weather"][0]['description'])
+
             wflistbox.insert(tk.END, f"Weather & Forecast for {location.capitalize()}\n\n", "custom_font")
             logging.info("Getting Weather & Forecast From The API!")
             wflistbox.insert(tk.END,
                              f"Weather details:\nWeather: {weather_desc}\nTemperature: {celsius:.2f}°C, {fahrenheit:.2f}°F\n"
                              f"Feels like {feels_like_celsius:.2f}°C, {feels_like_fahrenheit:.2f}°F\n"
                              f"Humidity {humidity}%\n\n", "custom_font")
-            for values in forecasted_Data:
+
+            for day, data in forecasted_Data.items():
+                avg_min_temp = sum(data["min_temps"]) / len(data["min_temps"])
+                avg_max_temp = sum(data["max_temps"]) / len(data["max_temps"])
+                avg_description = statistics.mode(data["descriptions"])
+
                 wflistbox.insert(tk.END,
-                                 f"Forecast details:\nDay: {values['day']}\nMinimum Temperature: {values['min_temp']}\n"
-                                 f"Maximum Temperature: {values['max_temp']}\nWeather: {values['description']}\n\n",
+                                 f"Forecast details:\nDay: {day}\nAverage Minimum Temperature: {avg_min_temp:.2f}°C\n"
+                                 f"Average Maximum Temperature: {avg_max_temp:.2f}°C\n"
+                                 f"Mode Weather: {avg_description}\n\n",
                                  "custom_font")
+
             wflistbox.after(2000, lambda: wflistbox.pack())
             logging.info("Weather & Forecast From The API Displayed Successfully!")
         toggle_wf(False)
