@@ -5,12 +5,12 @@ import sqlite3
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
 from typing import Callable
-
 import pandas as pd
 from dateutil.relativedelta import relativedelta
 from tkcalendar import Calendar
 from ttkthemes import ThemedStyle
 import openpyxl
+import matplotlib.pyplot as plt
 
 
 def show_message(message_label: tk.Label, text: str, colour: str, duration=2000) -> None:
@@ -29,6 +29,19 @@ def show_message(message_label: tk.Label, text: str, colour: str, duration=2000)
 
 
 def deposit(date: Calendar, value: str, message_label: tk.Label, toggle_deposit: Callable) -> None:
+    """
+    Adds an initial deposit value for the selected month to the database.
+
+    Args:
+        date (Calendar): The selected date from a calendar widget.
+        value (str): The deposit amount to add to the database.
+        message_label (tk.Label): The label widget to display status messages.
+        toggle_deposit (Callable): A callable function to toggle the deposit feature.
+
+    Returns:
+        None: This function does not return a value, but it adds the deposit to the database.
+
+    """
     try:
         selected_date = date.parse_date(date.get_date())
         connection = sqlite3.connect('Expenses.db')
@@ -86,6 +99,22 @@ def deposit(date: Calendar, value: str, message_label: tk.Label, toggle_deposit:
 
 def deduct(date: Calendar, category: Callable, description: str, value: str, message_label: tk.Label,
            toggle_deduct: Callable) -> None:
+    """
+    Deducts an expense from the selected date's budget and updates the database.
+
+    Args:
+        date (Calendar): The selected date from a calendar widget.
+        category (Callable): A function to select the expense category.
+        description (str): A description of the expense.
+        value (str): The amount of the expense to deduct.
+        message_label (tk.Label): The label widget to display status messages.
+        toggle_deduct (Callable): A callable function to toggle the deduct feature.
+
+    Returns:
+        None: This function does not return a value but deducts the expense and updates the database.
+
+    """
+
     try:
         selected_date = date.parse_date(date.get_date())
         option = category()
@@ -135,15 +164,27 @@ def deduct(date: Calendar, category: Callable, description: str, value: str, mes
 
 
 def convert(convert_type: str, calendar: Callable, message_label: tk.Label) -> None:
+    """
+    Converts and exports data based on the selected conversion type.
+
+    Args:
+        convert_type (str): The type of conversion to perform (e.g., 'Pandas', 'CSV', etc.).
+        calendar (Callable): A function to select a specific calendar date or range.
+        message_label (tk.Label): The label widget to display status messages.
+
+    Returns:
+        None: This function does not return a value but performs the specified data conversion and export.
+
+    """
     if convert_type == "Excel":
         month, year = calendar()
         connection = sqlite3.connect('Expenses.db')
         selected = datetime.datetime.strptime(month, '%B')
-        formatted = selected.replace(year=int(year), day=1).strftime('%Y-%m')
-        query = "SELECT * FROM Transactions WHERE strftime('%Y-%m', Date) = ?"
+        formatted = selected.replace(year=int(year)).strftime('%Y-%m')
+        query = "SELECT * FROM Transactions WHERE strftime('%Y-%m', Date) = ? ORDER BY Date"
         params = (formatted,)
 
-        df = pd.read_sql_query(query, connection, params=params)
+        df = pd.read_sql_query(query, connection, params=params)  # NOQA
 
         connection.close()
         excel_file = f'{month}_sheet.xlsx'
@@ -151,12 +192,98 @@ def convert(convert_type: str, calendar: Callable, message_label: tk.Label) -> N
         columns_to_convert = ["Amount", "Available", "Total"]
         for column in columns_to_convert:
             df[column] = df[column].apply(lambda x: '£' + numerize.numerize(int(x)))
-        df.drop(columns=['Description'], inplace=True)
+        # df.drop(columns=['Description'], inplace=True)
         df['Total Spent'].fillna(0, inplace=True)
         df['Total Spent'] = df['Total Spent'].apply(lambda x: '£' + numerize.numerize(int(x)))
         df.to_excel(excel_file, index=False, engine='openpyxl')
 
         show_message(message_label, text=f"{excel_file}\nCreated Successfully!", colour="green")
+        logging.info(f"xlsx file successful!")
+
+    elif convert_type == 'CSV' or convert_type == 'Pandas':
+        month, year = calendar()
+        connection = sqlite3.connect('Expenses.db')
+        selected = datetime.datetime.strptime(month, '%B')
+        formatted = selected.replace(year=int(year)).strftime('%Y-%m')
+        query = "SELECT * FROM Transactions WHERE strftime('%Y-%m', Date) = ? ORDER BY Date"
+        params = (formatted,)
+
+        df = pd.read_sql_query(query, connection, params=params)  # NOQA
+        df['Total Spent'] = df['Amount'].iloc[1:].cumsum()
+        columns_to_convert = ["Amount", "Available", "Total"]
+        for column in columns_to_convert:
+            df[column] = df[column].apply(lambda x: '£' + numerize.numerize(int(x)))
+        # df.drop(columns=['Description'], inplace=True)
+        df['Total Spent'].fillna(0, inplace=True)
+        df['Total Spent'] = df['Total Spent'].apply(lambda x: '£' + numerize.numerize(int(x)))
+
+        csv_file = f"{month}_pandas_file.csv"
+        df.to_csv(csv_file, index=False)
+        show_message(message_label, text=f"{csv_file}\nCreated Successfully!", colour="green")
+        logging.info(f"CSV file successful!")
+
+    elif convert_type == "Pie Chart":
+        month, year = calendar()
+        connection = sqlite3.connect('Expenses.db')
+        selected = datetime.datetime.strptime(month, '%B')
+        formatted = selected.replace(year=int(year)).strftime('%Y-%m')
+        query = "SELECT * FROM Transactions WHERE strftime('%Y-%m', Date) = ? ORDER BY Date"
+        params = (formatted,)
+
+        df = pd.read_sql_query(query, connection, params=params)  # NOQA
+        df = df[df['Category'] != 'MONTHLY DEPOSIT!']
+
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 6))
+
+        category_amount_df = df.groupby('Category')['Amount'].sum()
+        ax1.pie(category_amount_df, labels=category_amount_df.index, autopct='%1.1f%%', startangle=90)
+        ax1.set_title(f'Spending by Category for {month} {year}')
+
+        ax2.pie(df[['Total', 'Available']].iloc[0], labels=['Total', 'Available'], autopct='%1.1f%%', startangle=90)
+        ax2.set_title(f'Total and Available Amount for {month} {year}')
+
+        plt.tight_layout()
+        fig_name = f"{month} Pie Chart.png"
+        fig.savefig(fig_name)
+        show_message(message_label, text="Pie Chart Successfully Created!", colour='green')
+        logging.info(f"Pie chart successful created!")
+
+    elif convert_type == 'Bar Graph':
+        month, year = calendar()
+        connection = sqlite3.connect('Expenses.db')
+        selected = datetime.datetime.strptime(month, '%B')
+        formatted = selected.replace(year=int(year)).strftime('%Y-%m')
+        query = "SELECT * FROM Transactions WHERE strftime('%Y-%m', Date) = ? ORDER BY Date"
+        params = (formatted,)
+
+        df = pd.read_sql_query(query, connection, params=params)  # NOQA
+
+        df = df[df['Category'] != 'MONTHLY DEPOSIT!']
+
+        category_amount_df = df.groupby('Category')['Amount'].sum()
+
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+        category_amount_df.plot(kind='bar', ax=ax1)
+
+        total_available = df[['Total', 'Available']].iloc[0]
+        total_available.plot(kind='bar', ax=ax2)
+
+        ax1.set_xlabel('Category')
+        ax1.set_ylabel('Amount / £')
+        ax1.set_title(f'Category-wise Spending for {month} {year}')
+        ax2.set_xlabel('TOTAL & AVAILABLE')
+        ax2.set_ylabel('Amount / £')
+        ax2.set_title(f'Total & Available FOR {month} {year}')
+
+        ax1.set_xticklabels(ax1.get_xticklabels(), rotation=360, ha='center')
+        ax2.set_xticklabels(ax2.get_xticklabels(), rotation=360, ha='center')
+
+        plt.tight_layout()
+        fig_name = f"{month} Bar Graph"
+        fig.savefig(fig_name)
+
+        show_message(message_label, text="Bar Graph Successfully Created!", colour='green')
+        logging.info(f"Bar graph successful created!")
 
 
 def view(date: Calendar, message_label: tk.Label, view_box: tk.scrolledtext.ScrolledText) -> None:
@@ -165,9 +292,12 @@ def view(date: Calendar, message_label: tk.Label, view_box: tk.scrolledtext.Scro
         connection = sqlite3.connect("Expenses.db")
         cursor = connection.cursor()
 
-        # Calculate the start and end dates for the selected month
         start_date = selected_date.strftime('%Y-%m-%d')
         end_date = (selected_date + relativedelta(day=31)).strftime('%Y-%m-%d')
+
+        # Clear existing data in the view_box
+        view_box.config(state='normal')
+        view_box.delete("1.0", tk.END)
 
         results = cursor.execute(
             "SELECT Date, Category, Amount, Available, Total FROM Transactions WHERE Date BETWEEN ? AND ?"
@@ -175,16 +305,16 @@ def view(date: Calendar, message_label: tk.Label, view_box: tk.scrolledtext.Scro
             (start_date, end_date))
 
         data = results.fetchall()
+
         if not data:
-            view_box.delete("1.0", tk.END)
+            view_box.grid_remove()
             show_message(message_label, text=f"No results found for the month of {selected_date.strftime('%B %Y')}",
                          colour="red")
             logging.info(f"No matches found for the month of {selected_date.strftime('%B %Y')}")
-            view_box.pack_forget()
         else:
             show_message(message_label, text="Getting results......", colour="green")
             logging.info(f"Match found! for the month of {selected_date.strftime('%B %Y')}")
-            view_box.delete("1.0", tk.END)
+
             view_box.insert(tk.END, f"Expenses for the Month of {selected_date.strftime('%B %Y')}\n\n", "custom_font")
             view_box.insert(tk.END, "S.NO\tDATE\t\tCATEGORY\t\t\t\tSPENT\n", "custom_font")
 
@@ -202,8 +332,10 @@ def view(date: Calendar, message_label: tk.Label, view_box: tk.scrolledtext.Scro
                 available = row[3]
                 total_deposit = row[4]
 
-            view_box.insert(tk.END, f"\nTOTAL AVAILABLE: £{available}\nTOTAL SPENT: £{spent}\n"
-                                    f"TOTAL DEPOSITED: £{total_deposit}", "custom_font")
+            view_box.insert(tk.END, f"\nTOTAL AVAILABLE: £{numerize.numerize(available)}\n"
+                                    f"TOTAL SPENT: £{numerize.numerize(spent)}\n"
+                                    f"TOTAL DEPOSITED: £{numerize.numerize(total_deposit)}", "custom_font")
+            view_box.config(state='disabled')
             view_box.after(2500, lambda: view_box.grid(row=3, column=0))
 
         connection.close()
@@ -213,6 +345,14 @@ def view(date: Calendar, message_label: tk.Label, view_box: tk.scrolledtext.Scro
     except (TypeError, ValueError) as error:
         show_message(message_label, text=f"An error occurred: {error}", colour="red")
         logging.error(f"An error occurred: {error}")
+
+
+def delete(calendar: Calendar, message_label: tk.Label, toggle_delete: Callable) -> None:
+    raise NotImplementedError
+
+
+def predicted_budget():
+    raise NotImplementedError
 
 
 def centered(window: tk.Tk, width: int, height: int) -> None:
@@ -387,11 +527,6 @@ def gui() -> None:
         selected_year = year_val.get()
         return selected_month, selected_year
 
-    # Bind the function to the Comboboxes
-    month_box.bind("<<ComboboxSelected>>", get_month_year)
-    year_box.bind("<<ComboboxSelected>>", get_month_year)
-    deduction_box.bind("<<ComboboxSelected>>", deducted_Category)
-
     def toggle_deposit(enable) -> None:
         if enable:
             deposit_date_label.grid(row=0, column=1, pady=10)
@@ -419,7 +554,6 @@ def gui() -> None:
             deduction_entry_value.grid(row=7, column=1, pady=5)
             deduct_button.grid(row=8, column=0, columnspan=2, pady=10)
             deduction_frame.pack()
-
         else:
             deduction_entry_description.delete(0, tk.END)
             deduction_entry_value.delete(0, tk.END)
@@ -434,10 +568,8 @@ def gui() -> None:
             view_box.config(state='normal')
             view_box.tag_configure("custom_font", font=("Quicksand", 15), foreground="black")
             view_frame.pack()
-
         else:
             view_frame.pack_forget()
-            view_box.config(state='disabled')
 
     def toggle_convert(enable):
         if enable:
@@ -476,6 +608,7 @@ def gui() -> None:
             toggle_view(False)
 
     Operations_box.bind('<<ComboboxSelected>>', get_value)
+    deduction_box.bind("<<ComboboxSelected>>", deducted_Category)
 
     entry_mappings = {
         deposit_entry: deposit_calendar,
