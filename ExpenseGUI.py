@@ -287,6 +287,18 @@ def convert(convert_type: str, calendar: Callable, message_label: tk.Label) -> N
 
 
 def view(date: Calendar, message_label: tk.Label, view_box: tk.scrolledtext.ScrolledText) -> None:
+    """
+    Displays and retrieves expense data for the selected month.
+
+    Args:
+        date (Calendar): The selected date from a calendar widget.
+        message_label (tk.Label): The label widget to display status messages.
+        view_box (tk.scrolledtext.ScrolledText): The text widget for displaying expense data.
+
+    Returns:
+        None: This function does not return a value but displays the expense data in the view_box.
+
+    """
     try:
         selected_date = date.parse_date(date.get_date())
         connection = sqlite3.connect("Expenses.db")
@@ -365,6 +377,12 @@ def centered(window: tk.Tk, width: int, height: int) -> None:
 
 
 def gui() -> None:
+    """
+    Main function for GUI representation
+
+    Returns:
+        None: This function does not return a value but displays everything
+    """
     # Creating and main window operations
     window = tk.Tk()
     window.title("EXPENSE'S SHEET")
@@ -394,6 +412,12 @@ def gui() -> None:
     window_id = canvas.create_window((x, 0), window=content_frame, anchor="n")
 
     def on_canvas_resize(event):
+        """
+        Readjusts the canvas position
+
+        Args:
+            event: gets the current width from the canvas window
+        """
         canvas_width = event.width
         # canvas_height = event.height
         x = canvas_width // 2
