@@ -186,19 +186,22 @@ def convert(convert_type: str, calendar: Callable, message_label: tk.Label) -> N
 
         df = pd.read_sql_query(query, connection, params=params)  # NOQA
 
-        connection.close()
-        excel_file = f'{month}_sheet.xlsx'
-        df['Total Spent'] = df['Amount'].iloc[1:].cumsum()
-        columns_to_convert = ["Amount", "Available", "Total"]
-        for column in columns_to_convert:
-            df[column] = df[column].apply(lambda x: '£' + numerize.numerize(int(x)))
-        # df.drop(columns=['Description'], inplace=True)
-        df['Total Spent'].fillna(0, inplace=True)
-        df['Total Spent'] = df['Total Spent'].apply(lambda x: '£' + numerize.numerize(int(x)))
-        df.to_excel(excel_file, index=False, engine='openpyxl')
+        if df.bool:
+            excel_file = f'{month}_sheet.xlsx'
+            df['Total Spent'] = df['Amount'].iloc[1:].cumsum()
+            columns_to_convert = ["Amount", "Available", "Total"]
+            for column in columns_to_convert:
+                df[column] = df[column].apply(lambda x: '£' + numerize.numerize(int(x)))
+            # df.drop(columns=['Description'], inplace=True)
+            df['Total Spent'].fillna(0, inplace=True)
+            df['Total Spent'] = df['Total Spent'].apply(lambda x: '£' + numerize.numerize(int(x)))
+            df.to_excel(excel_file, index=False, engine='openpyxl')
 
-        show_message(message_label, text=f"{excel_file}\nCreated Successfully!", colour="green")
-        logging.info(f"xlsx file successful!")
+            show_message(message_label, text=f"{excel_file}\nCreated Successfully!", colour="green")
+            logging.info(f"xlsx file successful!")
+        else:
+            show_message(message_label, text=f"Check {month} data!", colour="red")
+            logging.info(f"{month} doesnt have values to create dataframe")
 
     elif convert_type == 'CSV' or convert_type == 'Pandas':
         month, year = calendar()
@@ -209,19 +212,23 @@ def convert(convert_type: str, calendar: Callable, message_label: tk.Label) -> N
         params = (formatted,)
 
         df = pd.read_sql_query(query, connection, params=params)  # NOQA
-        df['Total Spent'] = df['Amount'].iloc[1:].cumsum()
-        columns_to_convert = ["Amount", "Available", "Total"]
-        for column in columns_to_convert:
-            df[column] = df[column].apply(lambda x: '£' + numerize.numerize(int(x)))
-        # df.drop(columns=['Description'], inplace=True)
-        df['Total Spent'].fillna(0, inplace=True)
-        df['Total Spent'] = df['Total Spent'].apply(lambda x: '£' + numerize.numerize(int(x)))
 
-        csv_file = f"{month}_pandas_file.csv"
-        df.to_csv(csv_file, index=False)
-        show_message(message_label, text=f"{csv_file}\nCreated Successfully!", colour="green")
-        logging.info(f"CSV file successful!")
+        if df.bool:
+            df['Total Spent'] = df['Amount'].iloc[1:].cumsum()
+            columns_to_convert = ["Amount", "Available", "Total"]
+            for column in columns_to_convert:
+                df[column] = df[column].apply(lambda x: '£' + numerize.numerize(int(x)))
+            # df.drop(columns=['Description'], inplace=True)
+            df['Total Spent'].fillna(0, inplace=True)
+            df['Total Spent'] = df['Total Spent'].apply(lambda x: '£' + numerize.numerize(int(x)))
 
+            csv_file = f"{month}_pandas_file.csv"
+            df.to_csv(csv_file, index=False)
+            show_message(message_label, text=f"{csv_file}\nCreated Successfully!", colour="green")
+            logging.info(f"CSV file successful!")
+        else:
+            show_message(message_label, text=f"Check {month} {year} data!", colour="red")
+            logging.info(f"{month} {year} doesnt have values to create dataframe")
     elif convert_type == "Pie Chart":
         month, year = calendar()
         connection = sqlite3.connect('Expenses.db')
@@ -231,22 +238,27 @@ def convert(convert_type: str, calendar: Callable, message_label: tk.Label) -> N
         params = (formatted,)
 
         df = pd.read_sql_query(query, connection, params=params)  # NOQA
-        df = df[df['Category'] != 'MONTHLY DEPOSIT!']
+        if df.bool:
 
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 6))
+            df = df[df['Category'] != 'MONTHLY DEPOSIT!']
 
-        category_amount_df = df.groupby('Category')['Amount'].sum()
-        ax1.pie(category_amount_df, labels=category_amount_df.index, autopct='%1.1f%%', startangle=90)
-        ax1.set_title(f'Spending by Category for {month} {year}')
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 6))
 
-        ax2.pie(df[['Total', 'Available']].iloc[0], labels=['Total', 'Available'], autopct='%1.1f%%', startangle=90)
-        ax2.set_title(f'Total and Available Amount for {month} {year}')
+            category_amount_df = df.groupby('Category')['Amount'].sum()
+            ax1.pie(category_amount_df, labels=category_amount_df.index, autopct='%1.1f%%', startangle=90)
+            ax1.set_title(f'Spending by Category for {month} {year}')
 
-        plt.tight_layout()
-        fig_name = f"{month} Pie Chart.png"
-        fig.savefig(fig_name)
-        show_message(message_label, text="Pie Chart Successfully Created!", colour='green')
-        logging.info(f"Pie chart successful created!")
+            ax2.pie(df[['Total', 'Available']].iloc[0], labels=['Total', 'Available'], autopct='%1.1f%%', startangle=90)
+            ax2.set_title(f'Total and Available Amount for {month} {year}')
+
+            plt.tight_layout()
+            fig_name = f"{month} Pie Chart.png"
+            fig.savefig(fig_name)
+            show_message(message_label, text="Pie Chart Successfully Created!", colour='green')
+            logging.info(f"Pie chart successful created!")
+        else:
+            show_message(message_label, text=f"Check {month} {year} data!", colour="red")
+            logging.info(f"{month} {year} doesnt have values to create dataframe")
 
     elif convert_type == 'Bar Graph':
         month, year = calendar()
@@ -257,33 +269,111 @@ def convert(convert_type: str, calendar: Callable, message_label: tk.Label) -> N
         params = (formatted,)
 
         df = pd.read_sql_query(query, connection, params=params)  # NOQA
+        if df.bool:
+            df = df[df['Category'] != 'MONTHLY DEPOSIT!']
 
-        df = df[df['Category'] != 'MONTHLY DEPOSIT!']
+            category_amount_df = df.groupby('Category')['Amount'].sum()
 
-        category_amount_df = df.groupby('Category')['Amount'].sum()
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+            category_amount_df.plot(kind='bar', ax=ax1)
 
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
-        category_amount_df.plot(kind='bar', ax=ax1)
+            df['Cumulative_Amount'] = df['Amount'].cumsum()
+            df['Available_overtime'] = df['Total'] - df['Cumulative_Amount']
+            total_available = df[['Date', 'Available_overtime']].set_index('Date')
+            total_available.plot(kind='bar', ax=ax2)
 
-        total_available = df[['Total', 'Available']].iloc[0]
-        total_available.plot(kind='bar', ax=ax2)
+            ax1.set_xlabel('Category')
+            ax1.set_ylabel('Amount / £')
+            ax1.set_title(f'Category-wise Spending for {month} {year}')
+            ax2.set_xlabel('Date')
+            ax2.set_ylabel('Amount / £')
+            ax2.set_title(f'Available for {month} {year} per date')
 
-        ax1.set_xlabel('Category')
-        ax1.set_ylabel('Amount / £')
-        ax1.set_title(f'Category-wise Spending for {month} {year}')
-        ax2.set_xlabel('TOTAL & AVAILABLE')
-        ax2.set_ylabel('Amount / £')
-        ax2.set_title(f'Total & Available FOR {month} {year}')
+            ax1.set_xticklabels(ax1.get_xticklabels(), rotation=360, ha='center')
+            ax2.set_xticklabels(ax2.get_xticklabels(), rotation=360, ha='center')
 
-        ax1.set_xticklabels(ax1.get_xticklabels(), rotation=360, ha='center')
-        ax2.set_xticklabels(ax2.get_xticklabels(), rotation=360, ha='center')
+            plt.tight_layout()
+            fig_name = f"{month} Bar Graph"
+            fig.savefig(fig_name)
 
-        plt.tight_layout()
-        fig_name = f"{month} Bar Graph"
-        fig.savefig(fig_name)
+            show_message(message_label, text="Bar Graph Successfully Created!", colour='green')
+            logging.info(f"Bar graph successful created!")
+        else:
+            show_message(message_label, text=f"Check {month} {year} data!", colour="red")
+            logging.info(f"{month} {year} doesnt have values to create dataframe")
 
-        show_message(message_label, text="Bar Graph Successfully Created!", colour='green')
-        logging.info(f"Bar graph successful created!")
+    elif convert_type == 'Line Chart':
+        month, year = calendar()
+        connection = sqlite3.connect('Expenses.db')
+        selected = datetime.datetime.strptime(month, '%B')
+        formatted = selected.replace(year=int(year)).strftime('%Y-%m')
+        query = "SELECT * FROM Transactions WHERE strftime('%Y-%m', Date) = ? ORDER BY Date"
+        params = (formatted,)
+
+        df = pd.read_sql_query(query, connection, params=params)  # NOQA
+        if df.bool:
+            df = df[df['Category'] != "MONTHLY DEPOSIT!"]
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+            categorized = df.groupby("Category")["Amount"].sum()
+            ax1.plot(categorized.index, categorized.values)
+            ax1.set_xlabel('Categories')
+            ax1.set_ylabel('Total Amount')
+            ax1.set_title('Expenses by Category')
+            ax1.tick_params(axis='x', rotation=360, ha='canter')
+
+            df['Cumulative_Amount'] = df['Amount'].cumsum()
+            df['Available_overtime'] = df['Total'] - df['Cumulative_Amount']
+            ax2.plot(df['Date'], df['Available_overtime'])
+            ax2.set_xlabel('Date')
+            ax2.set_ylabel('Amount / £')
+            ax2.set_title(f'Available for {month} {year} per date')
+            ax2.tick_params(axis='x', rotation=360, ha='center')
+
+            fig_name = f"{month} Line Chart"
+            plt.savefig(fig_name)
+
+            show_message(message_label, text="Line Chart Successfully Created!", colour='green')
+            logging.info(f"Line Chart successful created!")
+
+        else:
+            show_message(message_label, text=f"Check {month} {year} data!", colour="red")
+            logging.info(f"{month} {year} doesnt have values to create dataframe")
+
+    elif convert_type == 'Histogram':
+        month, year = calendar()
+        connection = sqlite3.connect('Expenses.db')
+        selected = datetime.datetime.strptime(month, '%B')
+        formatted = selected.replace(year=int(year)).strftime('%Y-%m')
+        query = "SELECT * FROM Transactions WHERE strftime('%Y-%m', Date) = ? ORDER BY Date"
+        params = (formatted,)
+        df = pd.read_sql_query(query, connection, params=params)  # NOQA
+        if not df.empty:
+            df = df[df['Category'] != 'MONTHLY DEPOSIT!']
+
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+            amounts = df['Amount'].tolist()
+
+            ax1.hist(amounts, bins=10)
+            ax1.set_xlabel('Amount')
+            ax1.set_ylabel('Frequency')
+            ax1.set_title('Expense Amount Histogram')
+
+            categorized = df.groupby("Category")["Amount"].sum()
+            ax2.bar(categorized.index, categorized.values)
+            ax2.set_xlabel('Categories')
+            ax2.set_ylabel('Total Amount')
+            ax2.set_title('Expenses by Category')
+            ax2.tick_params(axis='x', rotation=360, ha='center')
+
+            plt.tight_layout()
+            fig_name = f"{month} Histogram"
+            fig.savefig(fig_name)
+
+            show_message(message_label, text="Histogram Successfully Created!", colour='green')
+            logging.info(f"Histogram successfully created!")
+        else:
+            show_message(message_label, text=f"Check {month} data!", colour="red")
+            logging.info(f"{month} doesn't have values to create a dataframe")
 
 
 def view(date: Calendar, message_label: tk.Label, view_box: tk.scrolledtext.ScrolledText) -> None:
@@ -359,8 +449,30 @@ def view(date: Calendar, message_label: tk.Label, view_box: tk.scrolledtext.Scro
         logging.error(f"An error occurred: {error}")
 
 
-def delete(calendar: Calendar, message_label: tk.Label, toggle_delete: Callable) -> None:
-    raise NotImplementedError
+def delete(date: Calendar, message_label: tk.Label, toggle_delete: Callable) -> None:
+    try:
+        selected_date = date.parse_date(date.get_date()).strftime('%Y-%m-%d')
+        connection = sqlite3.connect("Expenses.db")
+        cursor = connection.cursor()
+        results = cursor.execute("SELECT * FROM Transactions WHERE strftime('%Y-%m-%d', Date) = ?",
+                                 (selected_date,))
+
+        if not results.fetchall():
+            show_message(message_label, text=f"{selected_date} data not found!", colour='red')
+            logging.info(f"{selected_date} deletion unsuccessful!")
+        else:
+            cursor.execute("DELETE FROM Transactions WHERE strftime('%Y-%m-%d', Date)= ?", (selected_date,))
+            show_message(message_label, text=f"Deleted data for date {selected_date}!", colour="green")
+            logging.info(f"{selected_date} date data successfully deleted!")
+            connection.commit()
+            toggle_delete(False)
+        connection.close()
+    except sqlite3.Error as error:
+        show_message(message_label, text=f"SQLite error: {error}", colour="red")
+        logging.error(f"SQLite error: {error}")
+    except (TypeError, ValueError) as error:
+        show_message(message_label, text=f"An error occurred: {error}", colour="red")
+        logging.error(f"An error occurred: {error}")
 
 
 def predicted_budget():
@@ -432,7 +544,7 @@ def gui() -> None:
     window_label = tk.Label(content_frame, text="Welcome To Expense Tracker!", font=("Quicksand", 25, "italic"))
     window_label.pack(pady=20)
     # Main listbox operations
-    Operations = ["Add Amount", "Deduct Amount", "View Sheet", "Convert"]
+    Operations = ["Add Amount", "Deduct Amount", "View Sheet", "Delete", "Convert"]
     values = tk.StringVar()
     Operations_label = tk.Label(content_frame, text="Select a Task: ", font=("Quicksand", 15, "italic"))
     Operations_box = ttk.Combobox(content_frame, textvariable=values, font=("Quicksand", 15, "italic"))
@@ -538,6 +650,14 @@ def gui() -> None:
                                                                                       global_message_label),
                                font=("Quicksand", 15, "bold"))
 
+    # Delete fields
+    delete_frame = tk.Frame(content_frame)
+    delete_label = tk.Label(delete_frame, text="Select a date to delete: ", font=("Quicksand", 15, "italic"))
+    delete_calendar = Calendar(delete_frame, date_pattern="y-mm-dd")
+    delete_button = tk.Button(delete_frame, text="Delete",
+                              command=lambda: delete(delete_calendar, global_message_label, toggle_delete),
+                              font=("Quicksand", 15, "bold"))
+
     def deducted_Category(event=None) -> str:
         if Category.get() == "Other":
             deduct_label_category.config(text="Enter Your Category: ")
@@ -608,6 +728,15 @@ def gui() -> None:
         else:
             convert_frame.pack_forget()
 
+    def toggle_delete(enable):
+        if enable:
+            delete_label.grid(row=0, column=0, pady=5)
+            delete_calendar.grid(row=1, column=0, pady=5)
+            delete_button.grid(row=2, column=0, columnspan=2, pady=10)
+            delete_frame.pack()
+        else:
+            delete_frame.pack_forget()
+
     def get_value(event) -> None:
         task = values.get()
         if task == 'Add Amount':
@@ -615,21 +744,31 @@ def gui() -> None:
             toggle_deduct(False)
             toggle_view(False)
             toggle_convert(False)
+            toggle_delete(False)
         elif task == 'Deduct Amount':
             toggle_deduct(True)
             toggle_deposit(False)
             toggle_view(False)
             toggle_convert(False)
+            toggle_delete(False)
         elif task == 'View Sheet':
             toggle_view(True)
             toggle_deposit(False)
             toggle_deduct(False)
             toggle_convert(False)
+            toggle_delete(False)
         elif task == 'Convert':
             toggle_convert(True)
             toggle_deposit(False)
             toggle_deduct(False)
             toggle_view(False)
+            toggle_delete(False)
+        elif task == 'Delete':
+            toggle_delete(True)
+            toggle_deposit(False)
+            toggle_deduct(False)
+            toggle_view(False)
+            toggle_convert(False)
 
     Operations_box.bind('<<ComboboxSelected>>', get_value)
     deduction_box.bind("<<ComboboxSelected>>", deducted_Category)
@@ -640,6 +779,9 @@ def gui() -> None:
         deduction_box: deduction_entry_description,
         deduction_entry_description: deduction_entry_value,
         deduction_entry_value: deduct_button,
+        convert_main_box: month_box,
+        month_box: year_box,
+        delete_calendar: delete_button
     }
 
     def widget_handler(event) -> None:
@@ -648,7 +790,7 @@ def gui() -> None:
             if widget == current:
                 next_widget.focus()
                 break
-        for button in [deposit_button, deduct_button, view_button]:
+        for button in [deposit_button, deduct_button, view_button, convert_button, delete_button]:
             if current == button:
                 button.invoke()
         view_button.focus_set()
