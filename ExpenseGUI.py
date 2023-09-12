@@ -397,7 +397,9 @@ def view(date: Calendar, message_label: tk.Label, view_box: tk.scrolledtext.Scro
         start_date = selected_date.strftime('%Y-%m-%d')
         end_date = (selected_date + relativedelta(day=31)).strftime('%Y-%m-%d')
 
-        # Clear existing data in the view_box
+        # or use
+        # next_month = selected_date.replace(day=28) + datetime.timedelta(days=4)
+        # end_date = next_month - datetime.timedelta(days=next_month.day)
         view_box.config(state='normal')
         view_box.delete("1.0", tk.END)
 
