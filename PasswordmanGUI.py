@@ -187,7 +187,8 @@ def delete(Account: str, Username: str, message_label: tk.Label, toggle_delete: 
     if not results:
         show_message(message_label, "Account does not exist!", "red")
     else:
-        cursor.execute("DELETE FROM manager WHERE USERNAME=?", (Account.strip().capitalize(),))
+        cursor.execute("DELETE FROM manager WHERE USERNAME=? AND ACCOUNT=?", (Account.strip().capitalize(),
+                                                                              Username.strip().capitalize()))
         connection.commit()
         toggle_delete(False)
         show_message(message_label, "Account deleted", "green")
