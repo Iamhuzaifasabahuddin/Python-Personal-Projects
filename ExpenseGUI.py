@@ -1,5 +1,7 @@
 import datetime
 import logging
+import pprint
+
 from numerize import numerize
 import sqlite3
 import tkinter as tk
@@ -477,8 +479,24 @@ def delete(date: Calendar, message_label: tk.Label, toggle_delete: Callable) -> 
         logging.error(f"An error occurred: {error}")
 
 
-def predicted_budget():
-    raise NotImplementedError
+def summary(selection: str, date: Callable, message_label: tk.Label, toggle_monthly: Callable, toggle_yearly):
+    if selection == 'Monthly':
+        toggle_yearly(False)
+        month, year = date()
+        formatted = datetime.datetime.strptime(month, "%B").replace(year=int(year)).strftime('%Y-%m')
+        connection = sqlite3.connect('Expenses.db')
+        cursor = connection.cursor()
+        results = cursor.execute("SELECT * FROM Transactions WHERE strftime('%Y-%m', Date)=?", (formatted,))
+
+        pprint.pprint(results.fetchall())
+    elif selection == 'Yearly':
+        toggle_monthly(False)
+        toggle_yearly(True)
+        month, year = date()
+        connection = sqlite3.connect('Expenses.db')
+        cursor = connection.cursor()
+        results = cursor.execute("SELECT * FROM Transactions WHERE strftime('%Y', Date)=? ORDER BY Date", (year,))
+        pprint.pprint(results.fetchall())
 
 
 def centered(window: tk.Tk, width: int, height: int) -> None:
@@ -546,7 +564,7 @@ def gui() -> None:
     window_label = tk.Label(content_frame, text="Welcome To Expense Tracker!", font=("Quicksand", 25, "italic"))
     window_label.pack(pady=20)
     # Main listbox operations
-    Operations = ["Add Amount", "Deduct Amount", "View Sheet", "Delete", "Convert"]
+    Operations = ["Add Amount", "Deduct Amount", "View Sheet", "Delete", "Convert", "Summary"]
     values = tk.StringVar()
     Operations_label = tk.Label(content_frame, text="Select a Task: ", font=("Quicksand", 15, "italic"))
     Operations_box = ttk.Combobox(content_frame, textvariable=values, font=("Quicksand", 15, "italic"))
@@ -660,6 +678,32 @@ def gui() -> None:
                               command=lambda: delete(delete_calendar, global_message_label, toggle_delete),
                               font=("Quicksand", 15, "bold"))
 
+    # Summary fields
+    summary_frame = tk.Frame(content_frame)
+    summary_label = tk.Label(summary_frame, text="Select a summary option: ", font=("Quicksand", 15, "italic"))
+    summary_options = ["Monthly", "Yearly"]
+    summary_value = tk.StringVar()
+    summary_box = ttk.Combobox(summary_frame, textvariable=summary_value, font=("Quicksand", 15, "italic"))
+    summary_box['values'] = summary_options
+    summary_box['state'] = 'readonly'
+    summary_month_label = tk.Label(summary_frame, text="Select a month: ", font=("Quicksand", 15, "italic"))
+    summary_month_box = ttk.Combobox(summary_frame, textvariable=month_val, font=("Quicksand", 15, "italic"))
+    summary_current_month = datetime.date.today().strftime('%B')
+    summary_month_box.set(summary_current_month)
+    summary_month_box['values'] = months
+    summary_month_box['state'] = 'readonly'
+    summary_year_label = tk.Label(summary_frame, text="Select a year: ", font=("Quicksand", 15, "italic"))
+    summary_year_box = ttk.Combobox(summary_frame, textvariable=year_val, font=("Quicksand", 15, "italic"))
+    summary_current_year = datetime.date.today().year
+    summary_year_box.set(str(summary_current_year))
+    summary_year_box['values'] = years
+    summary_year_box['state'] = 'readonly'
+    summary_box.set('Monthly')
+    summary_button = tk.Button(summary_frame, text="Summary",
+                               command=lambda: summary(summary_value.get(), get_month_year,
+                                                       global_message_label, toggle_monthly, toggle_yearly),
+                               font=("Quicksand", 15, "italic"))
+
     def deducted_Category(event=None) -> str:
         if Category.get() == "Other":
             deduct_label_category.config(text="Enter Your Category: ")
@@ -680,7 +724,7 @@ def gui() -> None:
             deposit_label.grid(row=2, column=1, pady=10)
             pound_label.grid(row=3, column=0, padx=2)
             deposit_entry.grid(row=3, column=1)
-            deposit_button.grid(row=4, column=1, columnspan=2, pady=10)  # Center-align the button
+            deposit_button.grid(row=4, column=1, columnspan=2, pady=10)
             deposit_frame.pack()
         else:
             deposit_entry.delete(0, tk.END)
@@ -739,6 +783,30 @@ def gui() -> None:
         else:
             delete_frame.pack_forget()
 
+    def toggle_monthly(enable):
+        if enable:
+            summary_label.grid(row=0, column=0, pady=5)
+            summary_box.grid(row=1, column=0, pady=10)
+            summary_month_label.grid(row=2, column=0, pady=5)
+            summary_month_box.grid(row=3, column=0, pady=10)
+            summary_year_label.grid(row=4, column=0, pady=5)
+            summary_year_box.grid(row=5, column=0, pady=10)
+            summary_button.grid(row=6, column=0, columnspan=2, pady=10)
+            summary_frame.pack()
+        else:
+            summary_frame.pack_forget()
+
+    def toggle_yearly(enable):
+        if enable:
+            summary_label.grid(row=0, column=0, pady=5)
+            summary_box.grid(row=1, column=0, pady=10)
+            summary_year_label.grid(row=2, column=0, pady=5)
+            summary_year_box.grid(row=3, column=0, pady=10)
+            summary_button.grid(row=4, column=0, columnspan=2, pady=10)
+            summary_frame.pack()
+        else:
+            summary_frame.pack_forget()
+
     def get_value(event) -> None:
         task = values.get()
         if task == 'Add Amount':
@@ -767,6 +835,13 @@ def gui() -> None:
             toggle_delete(False)
         elif task == 'Delete':
             toggle_delete(True)
+            toggle_deposit(False)
+            toggle_deduct(False)
+            toggle_view(False)
+            toggle_convert(False)
+        elif task == 'Summary':
+            toggle_monthly(True)
+            toggle_delete(False)
             toggle_deposit(False)
             toggle_deduct(False)
             toggle_view(False)
