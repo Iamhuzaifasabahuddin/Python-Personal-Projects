@@ -112,6 +112,7 @@ def weather(location, listbox: tk.scrolledtext.ScrolledText, message_label, weat
                 icon_image = icon_image.resize((70, 70))  # Adjust the size of the icon as needed
                 icon_photo = ImageTk.PhotoImage(icon_image)
 
+                listbox.delete("1.0", tk.END)
                 listbox.insert(tk.END, f"City: {location.capitalize()}\n\n", "custom_font")
 
                 # Store the icon_photo as an attribute of the listbox widget
