@@ -9,7 +9,8 @@ url = f"https://api.edamam.com/search"
 params = {
     "app_id": app_id,
     "app_key": app_key,
-    "q": search_query
+    "q": search_query,
+    "to": 10  # Number of results
 }
 response = requests.get(url, params=params)
 data = response.json()
