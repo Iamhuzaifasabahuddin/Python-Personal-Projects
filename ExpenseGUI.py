@@ -321,7 +321,7 @@ def convert(convert_type: str, calendar: Callable, message_label: tk.Label) -> N
             ax1.set_xlabel('Categories')
             ax1.set_ylabel('Total Amount')
             ax1.set_title('Expenses by Category')
-            ax1.tick_params(axis='x', rotation=360, ha='canter')
+            ax1.tick_params(axis='x', rotation=360)
 
             df['Cumulative_Amount'] = df['Amount'].cumsum()
             df['Available_overtime'] = df['Total'] - df['Cumulative_Amount']
@@ -329,7 +329,7 @@ def convert(convert_type: str, calendar: Callable, message_label: tk.Label) -> N
             ax2.set_xlabel('Date')
             ax2.set_ylabel('Amount / £')
             ax2.set_title(f'Available for {month} {year} per date')
-            ax2.tick_params(axis='x', rotation=360, ha='center')
+            ax2.tick_params(axis='x', rotation=360)
 
             fig_name = f"{month} Line Chart"
             plt.savefig(fig_name)
@@ -365,7 +365,7 @@ def convert(convert_type: str, calendar: Callable, message_label: tk.Label) -> N
             ax2.set_xlabel('Categories')
             ax2.set_ylabel('Total Amount')
             ax2.set_title('Expenses by Category')
-            ax2.tick_params(axis='x', rotation=360, ha='center')
+            ax2.tick_params(axis='x', rotation=360)
 
             plt.tight_layout()
             fig_name = f"{month} Histogram"
@@ -479,24 +479,81 @@ def delete(date: Calendar, message_label: tk.Label, toggle_delete: Callable) -> 
         logging.error(f"An error occurred: {error}")
 
 
-def summary(selection: str, date: Callable, message_label: tk.Label, toggle_monthly: Callable, toggle_yearly):
+def summary(selection: str, date: Callable, message_label: tk.Label, toggle_summary):
     if selection == 'Monthly':
-        toggle_yearly(False)
         month, year = date()
         formatted = datetime.datetime.strptime(month, "%B").replace(year=int(year)).strftime('%Y-%m')
         connection = sqlite3.connect('Expenses.db')
-        cursor = connection.cursor()
-        results = cursor.execute("SELECT * FROM Transactions WHERE strftime('%Y-%m', Date)=?", (formatted,))
+        query = "SELECT * FROM Transactions WHERE strftime('%Y-%m', Date)=?"
+        params = (formatted,)
+        df = pd.read_sql_query(query, connection, params=params)  # NOQA
+        if df.bool:
+            df = df[df['Category'] != 'MONTHLY DEPOSIT!']
 
-        pprint.pprint(results.fetchall())
+            category_amount_df = df.groupby('Category')['Amount'].sum()
+
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+            category_amount_df.plot(kind='bar', ax=ax1)
+
+            ax1.set_xlabel('Category')
+            ax1.set_ylabel('Amount / £')
+            ax1.set_title(f'Category-wise Spending for {month} {year}')
+            df['Cumulative_Amount'] = df['Amount'].cumsum()
+            df['Available_overtime'] = df['Total'] - df['Cumulative_Amount']
+            ax2.plot(df['Date'], df['Available_overtime'])
+            ax2.set_xlabel('Date')
+            ax2.set_ylabel('Amount / £')
+            ax2.set_title(f'Available for {month} {year} per date')
+            ax2.tick_params(axis='x', rotation=360)
+
+            ax1.set_xticklabels(ax1.get_xticklabels(), rotation=360, ha='center')
+
+            plt.tight_layout()
+            fig_name = f"{month} {year} summary"
+            fig.savefig(fig_name)
+
+            show_message(message_label, text=f"Monthly Summary for {month}\nSuccessfully Generated!", colour='green')
+            logging.info(f"{month} {year} Monthly summary generated successfully!")
+        else:
+            show_message(message_label, text=f"Check {month} {year} data!", colour="red")
+            logging.info(f"{month} {year} doesnt have values to create dataframe")
+
     elif selection == 'Yearly':
-        toggle_monthly(False)
-        toggle_yearly(True)
         month, year = date()
         connection = sqlite3.connect('Expenses.db')
-        cursor = connection.cursor()
-        results = cursor.execute("SELECT * FROM Transactions WHERE strftime('%Y', Date)=? ORDER BY Date", (year,))
-        pprint.pprint(results.fetchall())
+        query = "SELECT * FROM Transactions WHERE strftime('%Y', Date)=? ORDER BY Date"
+        params = (year,)
+        df = pd.read_sql_query(query, connection, params=params)
+
+        df['Date'] = pd.to_datetime(df['Date'])
+
+        if df.bool:
+            df = df[df['Category'] != 'MONTHLY DEPOSIT!']
+            category_amount_df = df.groupby('Category')['Amount'].sum()
+
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+
+            category_amount_df.plot(kind='bar', ax=ax1)
+            ax1.set_xlabel('Category')
+            ax1.set_ylabel('Amount / £')
+            ax1.set_title(f'Category-wise Spending for {month} {year}')
+            ax1.set_xticklabels(ax1.get_xticklabels(), rotation=360, ha='center')
+            monthly_summary = df.groupby(df['Date'].dt.month)['Amount'].sum()
+            monthly_summary.plot(kind='line', ax=ax2)
+            ax2.set_xlabel('Month')
+            ax2.set_ylabel('Amount / £')
+            ax2.set_title(f'Available Amount per Month for {year}')
+            ax2.set_xticks(range(1, 13))
+
+            fig_name = f"{year} summary"
+            plt.savefig(fig_name)
+
+            show_message(message_label, text=f"Yearly Summary for {year}\nSuccessfully Generated!", colour='green')
+            logging.info(f"{year} Yearly summary generated successfully!")
+
+        else:
+            show_message(message_label, text=f"Check {year} data!", colour="red")
+            logging.info(f"{month} {year} doesn't have values to create a dataframe")
 
 
 def centered(window: tk.Tk, width: int, height: int) -> None:
@@ -698,10 +755,10 @@ def gui() -> None:
     summary_year_box.set(str(summary_current_year))
     summary_year_box['values'] = years
     summary_year_box['state'] = 'readonly'
-    summary_box.set('Monthly')
+    # summary_box.set('Monthly')
     summary_button = tk.Button(summary_frame, text="Summary",
                                command=lambda: summary(summary_value.get(), get_month_year,
-                                                       global_message_label, toggle_monthly, toggle_yearly),
+                                                       global_message_label, toggle_summary),
                                font=("Quicksand", 15, "italic"))
 
     def deducted_Category(event=None) -> str:
@@ -712,7 +769,7 @@ def gui() -> None:
             deduction_box.config(state='readonly')
         return Category.get()
 
-    def get_month_year(event=None) -> tuple[str, str]:
+    def get_month_year() -> tuple[str, str]:
         selected_month = month_val.get()
         selected_year = year_val.get()
         return selected_month, selected_year
@@ -783,26 +840,26 @@ def gui() -> None:
         else:
             delete_frame.pack_forget()
 
-    def toggle_monthly(enable):
-        if enable:
-            summary_label.grid(row=0, column=0, pady=5)
-            summary_box.grid(row=1, column=0, pady=10)
+    def get_summary(event=None):
+        selection = summary_box.get()
+        if selection == 'Monthly':
             summary_month_label.grid(row=2, column=0, pady=5)
             summary_month_box.grid(row=3, column=0, pady=10)
             summary_year_label.grid(row=4, column=0, pady=5)
             summary_year_box.grid(row=5, column=0, pady=10)
             summary_button.grid(row=6, column=0, columnspan=2, pady=10)
             summary_frame.pack()
-        else:
-            summary_frame.pack_forget()
-
-    def toggle_yearly(enable):
-        if enable:
-            summary_label.grid(row=0, column=0, pady=5)
-            summary_box.grid(row=1, column=0, pady=10)
+        elif summary_value.get() == 'Yearly':
+            summary_month_label.grid_forget()
+            summary_month_box.grid_forget()
             summary_year_label.grid(row=2, column=0, pady=5)
             summary_year_box.grid(row=3, column=0, pady=10)
             summary_button.grid(row=4, column=0, columnspan=2, pady=10)
+
+    def toggle_summary(enable):
+        if enable:
+            summary_label.grid(row=0, column=0, pady=10)
+            summary_box.grid(row=1, column=0, pady=5)
             summary_frame.pack()
         else:
             summary_frame.pack_forget()
@@ -815,32 +872,37 @@ def gui() -> None:
             toggle_view(False)
             toggle_convert(False)
             toggle_delete(False)
+            toggle_summary(False)
         elif task == 'Deduct Amount':
             toggle_deduct(True)
             toggle_deposit(False)
             toggle_view(False)
             toggle_convert(False)
             toggle_delete(False)
+            toggle_summary(False)
         elif task == 'View Sheet':
             toggle_view(True)
             toggle_deposit(False)
             toggle_deduct(False)
             toggle_convert(False)
             toggle_delete(False)
+            toggle_summary(False)
         elif task == 'Convert':
             toggle_convert(True)
             toggle_deposit(False)
             toggle_deduct(False)
             toggle_view(False)
             toggle_delete(False)
+            toggle_summary(False)
         elif task == 'Delete':
             toggle_delete(True)
             toggle_deposit(False)
             toggle_deduct(False)
             toggle_view(False)
             toggle_convert(False)
+            toggle_summary(False)
         elif task == 'Summary':
-            toggle_monthly(True)
+            toggle_summary(True)
             toggle_delete(False)
             toggle_deposit(False)
             toggle_deduct(False)
@@ -849,6 +911,7 @@ def gui() -> None:
 
     Operations_box.bind('<<ComboboxSelected>>', get_value)
     deduction_box.bind("<<ComboboxSelected>>", deducted_Category)
+    summary_box.bind("<<ComboboxSelected>>", get_summary)
 
     entry_mappings = {
         deposit_entry: deposit_calendar,
@@ -858,7 +921,10 @@ def gui() -> None:
         deduction_entry_value: deduct_button,
         convert_main_box: month_box,
         month_box: year_box,
-        delete_calendar: delete_button
+        delete_calendar: delete_button,
+        summary_box: summary_month_box,
+        summary_month_box: summary_year_box,
+        summary_year_box: summary_button,
     }
 
     def widget_handler(event) -> None:
@@ -867,14 +933,14 @@ def gui() -> None:
             if widget == current:
                 next_widget.focus()
                 break
-        for button in [deposit_button, deduct_button, view_button, convert_button, delete_button]:
+        for button in [deposit_button, deduct_button, view_button, convert_button, delete_button, summary_button]:
             if current == button:
                 button.invoke()
         view_button.focus_set()
 
     for widgets in entry_mappings:
         widgets.bind("<Return>", widget_handler)
-    for buttons in [deposit_button, deduct_button, view_button]:
+    for buttons in [deposit_button, deduct_button, view_button, convert_button, delete_button, summary_button]:
         buttons.bind("<Return>", widget_handler)
 
     # Closes the Application
