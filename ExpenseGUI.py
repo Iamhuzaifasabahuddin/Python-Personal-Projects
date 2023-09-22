@@ -1,5 +1,6 @@
 import datetime
 import logging
+import os
 import pprint
 from numerize import numerize
 import sqlite3
@@ -12,6 +13,12 @@ from tkcalendar import Calendar
 from ttkthemes import ThemedStyle
 import openpyxl
 import matplotlib.pyplot as plt
+from google.auth.transport.requests import Request  # type: ignore
+from google.oauth2.credentials import Credentials  # type: ignore
+from google_auth_oauthlib.flow import InstalledAppFlow  # type: ignore
+from googleapiclient.discovery import build  # type: ignore
+from googleapiclient.http import MediaFileUpload  # type: ignore
+from googleapiclient.errors import HttpError  # type: ignore
 
 
 def show_message(message_label: tk.Label, text: str, colour: str, duration=2000) -> None:
@@ -27,6 +34,80 @@ def show_message(message_label: tk.Label, text: str, colour: str, duration=2000)
     message_label.config(text=text, fg=colour)
     message_label.pack(pady=10)
     message_label.after(duration, lambda: message_label.pack_forget())
+
+
+def upload(folder_name: str, filename: str):
+    """
+        Upload the database file to Google Drive.
+
+        This function uploads the database file to a designated folder in Google Drive
+        after validating a provided passcode.
+
+        Args:
+            folder_name: The name of the folder to upload to Google Drive.
+            filename: The name of the database file to upload to folder
+
+    """
+    global creds
+    try:
+        SCOPES = ['https://www.googleapis.com/auth/drive']
+        creds = None
+        if os.path.exists(r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\token3.json'):
+            creds = Credentials.from_authorized_user_file(
+                r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\token3.json', SCOPES)
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\Drive_Credentials.json', SCOPES)
+                creds = flow.run_local_server(port=0)
+            with open(r'C:\Users\huzai\PycharmProjects\Python-projects-1\Google\token3.json', 'w') as token:
+                token.write(creds.to_json())
+    except Exception as error:
+        logging.info(f"An error occurred {error}!")
+
+    try:
+        service = build('drive', 'v3', credentials=creds)
+
+        response = service.files().list(
+            q=f"name='{folder_name}' and mimeType='application/vnd.google-apps.folder'",
+            spaces='drive').execute()
+
+        if not response['files']:
+            file_metadata = {
+                "name": f"{folder_name}",
+                "mimeType": "application/vnd.google-apps.folder",
+            }
+
+            file = service.files().create(body=file_metadata, fields="id").execute()
+            folder_id = file.get('id')
+        else:
+            folder_id = response['files'][0]['id']
+
+        file_metadata = {
+            "name": f"{filename}",
+            "parents": [folder_id]
+        }
+
+        file_path = fr"C:\Users\huzai\PycharmProjects\Python-projects-1\{filename}"
+        # Search for the existing file in Google Drive
+        existing_file = service.files().list(
+            q=f"name='{filename}' and parents='{folder_id}'",
+            spaces='drive').execute()
+
+        if existing_file['files']:
+            existing_file_id = existing_file['files'][0]['id']
+
+            media = MediaFileUpload(file_path, resumable=True)
+            update_file = service.files().update(fileId=existing_file_id, media_body=media).execute()
+            logging.info(f"Updated file: {filename} --> {folder_name}")
+        else:
+            media = MediaFileUpload(file_path)
+            upload_file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+            logging.info(f"Uploaded file to drive {filename} --> {folder_name} {upload_file.get('id')}")
+    except HttpError as error:
+        logging.info(f'An error occurred: {error}')
 
 
 def deposit(date: Calendar, value: str, message_label: tk.Label, toggle_deposit: Callable) -> None:
@@ -197,6 +278,8 @@ def convert(convert_type: str, calendar: Callable, message_label: tk.Label) -> N
             df['Total Spent'].fillna(0, inplace=True)
             df['Total Spent'] = df['Total Spent'].apply(lambda x: '£' + numerize.numerize(int(x)))
             df.to_excel(excel_file, index=False, engine='openpyxl')
+            folder_name = f"{month}-{year}"
+            upload(folder_name, excel_file)
 
             show_message(message_label, text=f"{excel_file}\nCreated Successfully!", colour="green")
             logging.info(f"xlsx file successful!")
@@ -223,7 +306,10 @@ def convert(convert_type: str, calendar: Callable, message_label: tk.Label) -> N
             df['Total Spent'] = df['Total Spent'].apply(lambda x: '£' + numerize.numerize(int(x)))
 
             csv_file = f"{month}_pandas_file.csv"
+            folder_name = f"{month}-{year}"
             df.to_csv(csv_file, index=False)
+            upload(folder_name, csv_file)
+
             show_message(message_label, text=f"{csv_file}\nCreated Successfully!", colour="green")
             logging.info(f"CSV file successful!")
         else:
@@ -252,8 +338,11 @@ def convert(convert_type: str, calendar: Callable, message_label: tk.Label) -> N
             ax2.set_title(f'Total and Available Amount for {month} {year}')
 
             plt.tight_layout()
-            fig_name = f"{month} Pie Chart.png"
+            fig_name = f"{month}_Pie_Chart.png"
+            folder_name = f"{month}-{year}"
             fig.savefig(fig_name)
+            upload(folder_name, fig_name)
+
             show_message(message_label, text="Pie Chart Successfully Created!", colour='green')
             logging.info(f"Pie chart successful created!")
         else:
@@ -269,6 +358,8 @@ def convert(convert_type: str, calendar: Callable, message_label: tk.Label) -> N
         params = (formatted,)
 
         df = pd.read_sql_query(query, connection, params=params)  # NOQA
+        df['Date'] = pd.to_datetime(df['Date'])
+
         if df.bool:
             df = df[df['Category'] != 'MONTHLY DEPOSIT!']
 
@@ -279,22 +370,25 @@ def convert(convert_type: str, calendar: Callable, message_label: tk.Label) -> N
 
             df['Cumulative_Amount'] = df['Amount'].cumsum()
             df['Available_overtime'] = df['Total'] - df['Cumulative_Amount']
-            total_available = df[['Date', 'Available_overtime']].set_index('Date')
-            total_available.plot(kind='bar', ax=ax2)
+            df['Day'] = df['Date'].dt.day
+            total_available = df[['Day', 'Available_overtime']].set_index('Day')
+            total_available.plot(kind='barh', ax=ax2)
 
             ax1.set_xlabel('Category')
             ax1.set_ylabel('Amount / £')
             ax1.set_title(f'Category-wise Spending for {month} {year}')
-            ax2.set_xlabel('Date')
-            ax2.set_ylabel('Amount / £')
+            ax2.set_xlabel('Amount / £')
+            ax2.set_ylabel('Day')
             ax2.set_title(f'Available for {month} {year} per date')
 
             ax1.set_xticklabels(ax1.get_xticklabels(), rotation=360, ha='center')
             ax2.set_xticklabels(ax2.get_xticklabels(), rotation=360, ha='center')
 
             plt.tight_layout()
-            fig_name = f"{month} Bar Graph"
+            fig_name = f"{month}_Bar_Graph.png"
+            folder_name = f"{month}-{year}"
             fig.savefig(fig_name)
+            upload(folder_name, fig_name)
 
             show_message(message_label, text="Bar Graph Successfully Created!", colour='green')
             logging.info(f"Bar graph successful created!")
@@ -311,6 +405,8 @@ def convert(convert_type: str, calendar: Callable, message_label: tk.Label) -> N
         params = (formatted,)
 
         df = pd.read_sql_query(query, connection, params=params)  # NOQA
+        df['Date'] = pd.to_datetime(df['Date'])
+
         if df.bool:
             df = df[df['Category'] != "MONTHLY DEPOSIT!"]
             fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
@@ -323,14 +419,17 @@ def convert(convert_type: str, calendar: Callable, message_label: tk.Label) -> N
 
             df['Cumulative_Amount'] = df['Amount'].cumsum()
             df['Available_overtime'] = df['Total'] - df['Cumulative_Amount']
-            ax2.plot(df['Date'], df['Available_overtime'])
+            df["Day"] = df['Date'].dt.day.round().astype(int)
+            ax2.plot(df['Day'], df['Available_overtime'])
             ax2.set_xlabel('Date')
             ax2.set_ylabel('Amount / £')
             ax2.set_title(f'Available for {month} {year} per date')
             ax2.tick_params(axis='x', rotation=360)
 
-            fig_name = f"{month} Line Chart"
+            fig_name = f"{month}_Line_Chart.png"
+            folder_name = f"{month}-{year}"
             plt.savefig(fig_name)
+            upload(folder_name, fig_name)
 
             show_message(message_label, text="Line Chart Successfully Created!", colour='green')
             logging.info(f"Line Chart successful created!")
@@ -347,6 +446,8 @@ def convert(convert_type: str, calendar: Callable, message_label: tk.Label) -> N
         query = "SELECT * FROM Transactions WHERE strftime('%Y-%m', Date) = ? ORDER BY Date"
         params = (formatted,)
         df = pd.read_sql_query(query, connection, params=params)  # NOQA
+        df['Date'] = pd.to_datetime(df['Date'])
+
         if not df.empty:
             df = df[df['Category'] != 'MONTHLY DEPOSIT!']
 
@@ -366,8 +467,10 @@ def convert(convert_type: str, calendar: Callable, message_label: tk.Label) -> N
             ax2.tick_params(axis='x', rotation=360)
 
             plt.tight_layout()
-            fig_name = f"{month} Histogram"
+            fig_name = f"{month}_Histogram.png"
+            folder_name = f"{month}-{year}"
             fig.savefig(fig_name)
+            upload(folder_name, fig_name)
 
             show_message(message_label, text="Histogram Successfully Created!", colour='green')
             logging.info(f"Histogram successfully created!")
@@ -451,12 +554,13 @@ def view(date: Calendar, message_label: tk.Label, view_box: tk.scrolledtext.Scro
         logging.error(f"An error occurred: {error}")
 
 
-def delete(date: Calendar, message_label: tk.Label, toggle_delete: Callable) -> None:
+def delete(date: Calendar, category: Callable, message_label: tk.Label, toggle_delete: Callable) -> None:
     """
     Delete data from the database for the selected date.
 
     Parameters:
         date (Calendar): The Tkinter Calendar widget used to select a date.
+        category (Callable): Calls the category getting function.
         message_label (tk.Label): The Tkinter Label widget for displaying messages.
         toggle_delete (Callable): A function for toggling the delete mode in the GUI.
 
@@ -464,19 +568,32 @@ def delete(date: Calendar, message_label: tk.Label, toggle_delete: Callable) -> 
         None
     """
     try:
-        selected_date = date.get_date().strftime('%Y-%m-%d')
+        option = category()
+        selected_date = date.parse_date(date.get_date())
         connection = sqlite3.connect("Expenses.db")
         cursor = connection.cursor()
-        results = cursor.execute("SELECT * FROM Transactions WHERE strftime('%Y-%m-%d', Date) = ?",
-                                 (selected_date,))
-
+        results = cursor.execute("SELECT * FROM Transactions WHERE strftime('%Y-%m-%d', Date) = ? AND Category = ?",
+                                 (selected_date.strftime('%Y-%m-%d'), option.capitalize()))
         if not results.fetchall():
             show_message(message_label, text=f"{selected_date} data not found!", colour='red')
             logging.info(f"{selected_date} deletion unsuccessful!")
         else:
-            cursor.execute("DELETE FROM Transactions WHERE strftime('%Y-%m-%d', Date)= ?", (selected_date,))
-            show_message(message_label, text=f"Deleted data for date {selected_date}!", colour="green")
-            logging.info(f"{selected_date} date data successfully deleted!")
+            get_values = cursor.execute("SELECT Available, Amount, Total FROM Transactions WHERE"
+                                        " strftime('%Y-%m-%d', Date)= ? AND Category = ?",
+                                        (selected_date.strftime('%Y-%m-%d'), option.capitalize()))
+            available, amount, total = 0, 0, 0
+            for row in get_values.fetchall():
+                available += row[0]
+                amount += row[1]
+                total += row[2]
+            updated_total = total + amount
+            updated_available = available + amount
+            cursor.execute("DELETE FROM Transactions WHERE strftime('%Y-%m-%d', Date)= ? AND Category = ?",
+                           (selected_date, option.capitalize()))
+            cursor.execute("UPDATE Transactions SET Available = ?, Total = ? WHERE strftime('%Y-%m', Date) = ?",
+                           (updated_available, updated_total, selected_date.strftime('%Y-%m')))
+            show_message(message_label, text=f"Deleted data for date {selected_date} & updated!", colour="green")
+            logging.info(f"{selected_date} date data successfully deleted & updated!")
             connection.commit()
             toggle_delete(False)
         connection.close()
@@ -797,10 +914,17 @@ def gui() -> None:
 
     # Delete fields
     delete_frame = tk.Frame(content_frame)
+    Categories = ["", "Food", "Entertainment", "Business", "Shopping", "Misc", "Other"]
+    delete_label_category = tk.Label(delete_frame, text="Select a category: ", font=("Quicksand", 17, "italic"))
+    Category_delete = tk.StringVar()
+    deletion_box = ttk.Combobox(delete_frame, textvariable=Category_delete, font=("Quicksand", 15, "italic"))
+    deletion_box['values'] = Categories
+    deletion_box['state'] = 'readonly'
     delete_label = tk.Label(delete_frame, text="Select a date to delete: ", font=("Quicksand", 15, "italic"))
     delete_calendar = Calendar(delete_frame, date_pattern="y-mm-dd")
     delete_button = tk.Button(delete_frame, text="Delete",
-                              command=lambda: delete(delete_calendar, global_message_label, toggle_delete),
+                              command=lambda: delete(delete_calendar, deleted_Category, global_message_label,
+                                                     toggle_delete),
                               font=("Quicksand", 15, "bold"))
 
     # Summary fields
@@ -835,13 +959,27 @@ def gui() -> None:
         Returns:
             the selected or inputted category!
         """
-        logging.info("Category function called!")
+        logging.info("Getting Category!")
         if Category.get() == "Other":
             deduct_label_category.config(text="Enter Your Category: ")
             deduction_box.config(state='normal')
         else:
             deduction_box.config(state='readonly')
         return Category.get()
+
+    def deleted_Category(event=None) -> str:
+        """Toggles state of the category combobox
+
+        Returns:
+            the selected or inputted category!
+        """
+        logging.info("Getting Category!")
+        if Category_delete.get() == "Other":
+            deduct_label_category.config(text="Enter Your Category: ")
+            deduction_box.config(state='normal')
+        else:
+            deduction_box.config(state='readonly')
+        return Category_delete.get()
 
     def get_month_year() -> tuple[str, str]:
         """
@@ -850,7 +988,7 @@ def gui() -> None:
         Returns:
             month and year from the chosen month & year box
         """
-        logging.info("get month year called!")
+        logging.info("getting month and year from month and year box")
         selected_month = month_val.get()
         selected_year = year_val.get()
         return selected_month, selected_year
@@ -863,7 +1001,7 @@ def gui() -> None:
             None: Does not return anything but displays fields
         """
         if enable:
-            logging.info("Toggle deposit called!")
+            logging.info("Toggling deposit fields!")
             deposit_date_label.grid(row=0, column=1, pady=10)
             deposit_calendar.grid(row=1, column=1, pady=10)
             deposit_label.grid(row=2, column=1, pady=10)
@@ -883,7 +1021,7 @@ def gui() -> None:
             None: Does not return anything but displays fields
         """
         if enable:
-            logging.info("Toggle deduct called!")
+            logging.info("Toggling deduct fields!")
             deduct_label_category.grid(row=0, column=1)
             deduction_box.grid(row=1, column=1, pady=5)
             deducted_Category()
@@ -910,7 +1048,8 @@ def gui() -> None:
             None: Does not return anything but displays fields
         """
         if enable:
-            logging.info("Toggle view called!")
+            logging.info("Toggling view fields!")
+            view_box.delete("1.0", tk.END)
             view_label_date.grid(row=0, column=0, pady=10)
             view_dates.grid(row=1, column=0, pady=10)
             view_button.grid(row=2, column=0, columnspan=2, pady=10)
@@ -928,7 +1067,7 @@ def gui() -> None:
             None: Does not return anything but displays fields
         """
         if enable:
-            logging.info("Toggle convert called!")
+            logging.info("Toggling convert fields!")
             convert_label.grid(row=0, column=0, pady=5)
             convert_main_box.grid(row=1, column=0, pady=5)
             month_label.grid(row=2, column=0, pady=5)
@@ -948,10 +1087,13 @@ def gui() -> None:
             None: Does not return anything but displays fields
         """
         if enable:
-            logging.info("Toggle delete called!")
+            logging.info("Toggling delete fields!")
             delete_label.grid(row=0, column=0, pady=5)
             delete_calendar.grid(row=1, column=0, pady=5)
-            delete_button.grid(row=2, column=0, columnspan=2, pady=10)
+            delete_label_category.grid(row=2, column=0, pady=5)
+            deletion_box.grid(row=3, column=0, pady=5)
+            deleted_Category()
+            delete_button.grid(row=4, column=0, columnspan=2, pady=10)
             delete_frame.pack()
         else:
             delete_frame.pack_forget()
@@ -965,7 +1107,7 @@ def gui() -> None:
         """
         selection = summary_box.get()
         if selection == 'Monthly':
-            logging.info("Monthly summary  called!")
+            logging.info("Monthly summary fields displayed!")
             summary_month_label.grid(row=2, column=0, pady=5)
             summary_month_box.grid(row=3, column=0, pady=10)
             summary_year_label.grid(row=4, column=0, pady=5)
@@ -973,7 +1115,7 @@ def gui() -> None:
             summary_button.grid(row=6, column=0, columnspan=2, pady=10)
             summary_frame.pack()
         elif summary_value.get() == 'Yearly':
-            logging.info("Yearly summary  called!")
+            logging.info("Yearly summary fields displayed!")
             summary_month_label.grid_forget()
             summary_month_box.grid_forget()
             summary_year_label.grid(row=2, column=0, pady=5)
@@ -988,7 +1130,7 @@ def gui() -> None:
             None: Does not return anything but displays fields
         """
         if enable:
-            logging.info("Toggle summary called!")
+            logging.info("Toggling summary fields!")
             summary_label.grid(row=0, column=0, pady=10)
             summary_box.grid(row=1, column=0, pady=5)
             summary_frame.pack()
@@ -1077,10 +1219,12 @@ def gui() -> None:
             if widget == current:
                 next_widget.focus()
                 break
-        for button in [deposit_button, deduct_button, view_button, convert_button, delete_button, summary_button]:
+        for button in [deposit_button, deduct_button, delete_button]:
             if current == button:
                 button.invoke()
         view_button.focus_set()
+        convert_button.focus_set()
+        summary_button.focus_set()
 
     for widgets in entry_mappings:
         widgets.bind("<Return>", widget_handler)
