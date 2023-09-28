@@ -13,7 +13,6 @@ class Solution:
             if not root.left and not root.right:
                 return [root.val]
             return get_leaf_sequence(root.left) + get_leaf_sequence(root.right)
-
         leaf_sequence1 = get_leaf_sequence(root1)
         leaf_sequence2 = get_leaf_sequence(root2)
 
@@ -38,4 +37,4 @@ solution = Solution()
 
 # Determine if the leaf sequences are similar
 result = solution.leafSimilar(tree1, tree2)
-print(result)  # Output: True (Leaf sequences [9, 15, 7] and [7, 15, 9] are similar)
+print(result)
