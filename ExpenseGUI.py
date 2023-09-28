@@ -766,7 +766,7 @@ def gui() -> None:
     style.set_theme("kroc")
     # pprint.pprint(style.theme_names())
     centered(window, 500, 700)
-    main_frame = tk.Frame()
+    main_frame = tk.Frame(window)
     main_frame.pack(fill='both', expand=1)
 
     canvas = tk.Canvas(main_frame)
@@ -1254,12 +1254,12 @@ def logging_function() -> None:
               None: Returns nothing but calls the logging function
     """
     logging.basicConfig(level=logging.INFO, format='%(funcName)s --> %(message)s : %(asctime)s - %(levelname)s',
-                        datefmt="%Y-%m-%d %I:%M:%S %p")
+                        datefmt="%d-%m-%Y %I:%M:%S %p")
 
     File_handler = logging.FileHandler('Expenses.log')
     File_handler.setLevel(level=logging.WARNING)
     Format = logging.Formatter('%(funcName)s --> %(message)s : %(asctime)s - %(levelname)s',
-                               "%Y-%m-%d %I:%M:%S %p")
+                               "%d-%m-%Y %I:%M:%S %p")
     File_handler.setFormatter(Format)
 
     Logger = logging.getLogger('')
