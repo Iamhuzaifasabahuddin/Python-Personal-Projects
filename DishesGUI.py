@@ -24,6 +24,9 @@ def dishes(query: str, nums: int, message_label: tk.Label, listbox: tk.scrolledt
     else:
         if nums == 0:
             nums = 5
+        message_label.config(text="Fetching recipe...", fg='green')
+        message_label.grid(row=6, column=0, pady=5)
+        message_label.update_idletasks()
         params = {
             "app_id": app_id,
             "app_key": app_key,
@@ -34,19 +37,25 @@ def dishes(query: str, nums: int, message_label: tk.Label, listbox: tk.scrolledt
         response = requests.get(url, params=params)
         if response.status_code == HTTPStatus.OK:
             data = response.json()
-            listbox.config(state='normal')
-            listbox.delete('1.0', tk.END)
-            listbox.insert(tk.END, f"Displaying recipes for {query}\n\n", "custom_font")
-            for index, recipe in enumerate(data["hits"], start=1):
-                recipe = recipe['recipe']
-                ingredients = recipe['ingredientLines']
-                listed = '\n'.join([f'{index}) {value}' for index, value in enumerate(ingredients, start=1)])
-                listbox.insert(tk.END,
-                               f"{index}) Recipe name: {recipe['label']}\nURL: {recipe['url']}\nCalories: {recipe['calories']:.2f}"
-                               f"\nIngredients: \n{listed}\n\n", "custom_font")
-                print(f"{index}) {recipe['url']}")
-            toggle_recipes(False)
-            listbox.after(2500, listbox.grid(row=4, column=0, pady=5))
+            if data['hits']:
+                message_label.grid_remove()
+                listbox.config(state='normal')
+                listbox.delete('1.0', tk.END)
+                listbox.insert(tk.END, f"Displaying recipes for {query}\n\n", "custom_font")
+                for index, recipe in enumerate(data["hits"], start=1):
+                    recipe = recipe['recipe']
+                    ingredients = recipe['ingredientLines']
+                    listed = '\n'.join([f'{index}) {value}' for index, value in enumerate(ingredients, start=1)])
+                    listbox.insert(tk.END,
+                                   f"{index}) Recipe name: {recipe['label']}\nURL: {recipe['url']}\nCalories: {recipe['calories']:.2f}"
+                                   f"\nIngredients: \n{listed}\n\n", "custom_font")
+                    print(f"{index}) {recipe['url']}")
+                toggle_recipes(False)
+                listbox.after(2000, listbox.grid(row=4, column=0, pady=5))
+            else:
+                message_label.config(text=f"Recipe not found for {query}!", fg='red')
+                message_label.grid(row=6, column=0, pady=5)
+                message_label.after(2000, lambda: message_label.grid_remove())
         else:
             message_label.config(text=f"Error fetching data. Status Code: {response.status_code}", fg='red')
             message_label.grid(row=6, column=0, pady=5)
