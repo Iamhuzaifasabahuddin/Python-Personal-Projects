@@ -1,30 +1,58 @@
+import json
 import logging
-import pprint
+from http import HTTPStatus
 import tkinter as tk
 from typing import Callable
-
+import requests
 from ttkthemes import ThemedStyle
 from tkinter import ttk, scrolledtext, messagebox
 
 
-def show_message(message_label: tk.Label, text: str, colour: str, duration: int = 2000):
-    """
-           Display a message on the GUI.
+def dishes(query: str, nums: int, message_label: tk.Label, listbox: tk.scrolledtext.ScrolledText,
+           toggle_recipes: Callable):
+    app_id = json.load(open("Edamam_token.json", 'r'))["TOKEN"]["APP_ID"]
+    app_key = json.load(open("Edamam_token.json", 'r'))["TOKEN"]["APP_KEY"]
 
-           Args:
-               message_label (tk.Label): The label widget to display the message.
-               text (str): The message text.
-               colour (str): The color of the message text.
-               duration (int, optional): Duration in milliseconds to display the message. Default is 2000ms.
-           """
-    message_label.config(text=text, fg=colour)
-    message_label.pack()
-    message_label.after(duration, lambda: message_label.pack_forget())
+    toggle_recipes(True)
+    url = f"https://api.edamam.com/search"
 
+    if query.strip() == "":
+        message_label.config(text="Please enter an ingredient!", fg='red')
+        message_label.grid(row=6, column=0, pady=5)
+        message_label.after(2000, lambda: message_label.grid_remove())
+        toggle_recipes(False)
+    else:
+        if nums == 0:
+            nums = 5
+        params = {
+            "app_id": app_id,
+            "app_key": app_key,
+            "q": query,
+            "to": nums
+        }
 
-def dishes(ingredient: str, message_label: tk.Label, listbox: tk.scrolledtext.ScrolledText, toggle_recipes: Callable):
-    listbox.insert(tk.END, ingredient, "custom_font")
-    listbox.after(2500, listbox.grid(row=3, column=1, pady=5))
+        response = requests.get(url, params=params)
+        if response.status_code == HTTPStatus.OK:
+            data = response.json()
+            listbox.config(state='normal')
+            listbox.delete('1.0', tk.END)
+            listbox.insert(tk.END, f"Displaying recipes for {query}\n\n", "custom_font")
+            for index, recipe in enumerate(data["hits"], start=1):
+                recipe = recipe['recipe']
+                ingredients = recipe['ingredientLines']
+                listed = '\n'.join([f'{index}) {value}' for index, value in enumerate(ingredients, start=1)])
+                listbox.insert(tk.END,
+                               f"{index}) Recipe name: {recipe['label']}\nURL: {recipe['url']}\nCalories: {recipe['calories']:.2f}"
+                               f"\nIngredients: \n{listed}\n\n", "custom_font")
+                print(f"{index}) {recipe['url']}")
+            toggle_recipes(False)
+            listbox.after(2500, listbox.grid(row=4, column=0, pady=5))
+        else:
+            message_label.config(text=f"Error fetching data. Status Code: {response.status_code}", fg='red')
+            message_label.grid(row=6, column=0, pady=5)
+            message_label.after(2000, lambda: message_label.grid_remove())
+            toggle_recipes(False)
+            print(f"Error fetching data. Status Code: {response.status_code}")
 
 
 def centered(window: tk.Tk, width: int, height: int) -> None:
@@ -51,8 +79,7 @@ def gui() -> None:
     window.title("Dishes App")
     centered(window, 500, 700)
     style = ThemedStyle(window)
-    pprint.pprint(style.theme_names())
-    style.set_theme('arc')
+    style.set_theme('plastik')
     main_frame = tk.Frame(window)
     main_frame.pack(fill='both', expand=1)
 
@@ -84,26 +111,42 @@ def gui() -> None:
     main_title = tk.Label(content_frame, text="Welcome To Recipe Generator!", font=("Quicksand", 25, "italic"))
     main_title.pack(pady=10)
 
-    global_message_label = tk.Label(content_frame, text="", font=("Quicksand", 15, "italic"))
     recipe_frame = tk.Frame(content_frame)
-    recipe_title = tk.Label(recipe_frame, text="Enter an ingredient: ", font=("Quicksand", 15, "italic"))
-    recipe_entry = tk.Entry(recipe_frame, font=("Quicksand", 15, "italic"))
-    recipe_box = scrolledtext.ScrolledText(recipe_frame, wrap=tk.WORD, width=80, height=20)
+    message_label = tk.Label(recipe_frame, text="", font=("Quicksand", 17, "italic"))
+    recipe_title = tk.Label(recipe_frame, text="Enter an ingredient / query: ", font=("Quicksand", 20, "italic"))
+    recipe_entry = tk.Entry(recipe_frame, font=("Quicksand", 17, "italic"))
+    recipe_nums = tk.IntVar()
+    recipe_nums_label = tk.Label(recipe_frame, text="Enter number of recipes: ", font=("Quicksand", 20, "italic"))
+    recipe_number = ttk.Spinbox(
+        recipe_frame,
+        from_=0,
+        to=9999999999999,
+        textvariable=recipe_nums,
+        increment=1,
+        font=("Quicksand", 15)
+
+    )
+    recipe_box = scrolledtext.ScrolledText(recipe_frame, wrap=tk.WORD, width=100, height=50)
     recipe_button = tk.Button(recipe_frame, text="Fetch", font=("Quicksand", 15, "bold"),
-                              command=lambda: dishes(recipe_entry.get(),
-                                                     global_message_label,
+                              command=lambda: dishes(recipe_entry.get(), int(recipe_number.get()),
+                                                     message_label,
                                                      recipe_box, toggle_recipe))
 
     def toggle_recipe(enable):
         if enable:
-            recipe_title.grid(row=0, column=1, pady=10)
-            recipe_entry.grid(row=1, column=1, pady=5)
-            recipe_button.grid(row=2, column=1, pady=15, columnspan=2)
+            recipe_box.delete("1.0", tk.END)
+            recipe_title.grid(row=0, column=0, pady=10)
+            recipe_entry.grid(row=1, column=0, pady=5)
+            recipe_nums_label.grid(row=2, column=0, pady=10)
+            recipe_number.grid(row=3, column=0, pady=5)
+            recipe_button.grid(row=5, column=0, pady=15, columnspan=2)
+            message_label.grid(row=6, column=0, pady=5)
             recipe_box.config(state='normal')
-            recipe_box.tag_configure("custom_font", font=("Quicksand", 15), foreground="black")
+            recipe_box.tag_configure("custom_font", font=("Quicksand", 18), foreground="black")
             recipe_frame.pack()
         else:
-            recipe_frame.pack_forget()
+
+            recipe_box.config(state='disabled')
 
     toggle_recipe(True)
 
@@ -120,7 +163,8 @@ def gui() -> None:
             messagebox.showinfo("Closed", "Exited successfully!")
 
     entry_mapping = {
-        recipe_entry: recipe_button
+        recipe_entry: recipe_number,
+        recipe_number: recipe_button
     }
 
     def widget_handler(event):
