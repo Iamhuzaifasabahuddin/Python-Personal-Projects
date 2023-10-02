@@ -686,9 +686,11 @@ def summary(selection: str, date: Callable, message_label: tk.Label, toggle_summ
             ax4.tick_params(axis='x', rotation=360)
 
             plt.tight_layout()
-            fig_name = f"{month} {year} summary"
+            fig_name = f"{month} {year} summary.png"
             fig.savefig(fig_name)
+            folder_name = f"{month}-{year}"
 
+            upload(folder_name, fig_name)
             show_message(message_label, text=f"Monthly Summary for {month}\nSuccessfully Generated!", colour='green')
             logging.info(f"{month} {year} Monthly summary generated successfully!")
         else:
@@ -743,8 +745,11 @@ def summary(selection: str, date: Callable, message_label: tk.Label, toggle_summ
             ax4.set_title(f'Spent per Month for {year}')
             ax4.set_xticks(range(1, 13))
 
-            fig_name = f"{year} summary"
+            fig_name = f"{year} summary.png"
             plt.savefig(fig_name)
+
+            folder_name = f"{year}"
+            upload(folder_name, fig_name)
 
             show_message(message_label, text=f"Yearly Summary for {year}\nSuccessfully Generated!", colour='green')
             logging.info(f"{year} Yearly summary generated successfully!")
