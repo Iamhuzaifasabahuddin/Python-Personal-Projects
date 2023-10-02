@@ -21,6 +21,27 @@ from googleapiclient.http import MediaFileUpload  # type: ignore
 from googleapiclient.errors import HttpError  # type: ignore
 
 
+def create_database():
+    try:
+        connection = sqlite3.connect('Expenses.db')
+        cursor = connection.cursor()
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS Transactions (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Date DATE NOT NULL,
+                Category TEXT NOT NULL,
+                Description TEXT,
+                Amount FLOAT NOT NULL,
+                Available FLOAT  NOT NULL,
+                Total FLOAT NOT NULL)
+        ''')
+        connection.commit()
+        logging.info('Created database!')
+        connection.close()
+    except sqlite3.DatabaseError as error:
+        logging.info(f'Error creating database! {error}')
+
 def show_message(message_label: tk.Label, text: str, colour: str, duration=2000) -> None:
     """
        Display a message on the GUI.
@@ -768,6 +789,7 @@ def gui() -> None:
     centered(window, 500, 700)
     main_frame = tk.Frame(window)
     main_frame.pack(fill='both', expand=1)
+    create_database()
 
     canvas = tk.Canvas(main_frame)
     vsb = tk.Scrollbar(main_frame, orient="vertical", command=canvas.yview)

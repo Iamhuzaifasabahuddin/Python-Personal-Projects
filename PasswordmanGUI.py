@@ -14,6 +14,24 @@ from googleapiclient.http import MediaFileUpload  # type: ignore
 from googleapiclient.errors import HttpError  # type: ignore
 
 
+def create_database():
+    try:
+        connection = sqlite3.connect('Passwords.db')
+        cursor = connection.cursor()
+
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS manager
+            (USERNAME      TEXT    NOT NULL,
+            ACCOUNT           TEXT    NOT NULL,
+            PASSWORD           TEXT     NOT NULL);'''
+                       )
+        connection.commit()
+        logging.info('Created database!')
+        connection.close()
+    except sqlite3.DatabaseError as error:
+        logging.info(f'Error creating database! {error}')
+
+
 def search_database(username: str, account: str) -> bool:
     """Searches account and username in the database for add functionality"""
     connection = sqlite3.connect("Passwords.db")
@@ -387,7 +405,7 @@ def gui():
     window.iconphoto(True, icon)
     style = ThemedStyle(window)
     style.set_theme("black")
-
+    create_database()
     # Theme Switch Function Button
     frame = ttk.Frame(window)
     frame.pack(side="top", anchor="center", pady=5)
@@ -846,7 +864,7 @@ def gui():
 def logging_function():
     """Creates a console and file logging handler that logs messages"""
     logging.basicConfig(level=logging.INFO, format='%(funcName)s - %(message)s - %(asctime)s - %(levelname)s',
-                        datefmt = "%Y-%m-%d %I:%M:%S %p")
+                        datefmt="%Y-%m-%d %I:%M:%S %p")
 
     # Create a file handler
     file_handler = logging.FileHandler('password_manager.log')
