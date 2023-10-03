@@ -1,5 +1,6 @@
-## *HEY THERE 👋🏼, HUZAIFA HERE 🤜🏼🤛🏼*  
-### *💫 About Me:*
+## *HEY THERE 👋🏼, 
+HUZAIFA HERE 🤜🏼🤛🏼*  
+## 💫 About Me:
 👨🏻‍🎓I'm a second-year student at the University of Leicester with a passion for coding that started early on. Python has been my trusty companion throughout my coding journey, and I'm constantly exploring new horizons in the world of programming. Currently, I'm focused on advancing my skills in Python and its powerful frameworks like Pandas, NumPy, and Matplotlib. As a dedicated individual, I'm driven to excel in the industry and aspire to inspire others along the way. Let's connect and code the future together! 💻🚀
 
 
@@ -12,5 +13,3 @@
 ![](https://github-readme-stats.vercel.app/api?username=Iamhuzaifasabahuddin&theme=dark&hide_border=false&include_all_commits=true&count_private=false)<br/>
 ![](https://github-readme-streak-stats.herokuapp.com/?user=Iamhuzaifasabahuddin&theme=dark&hide_border=false)<br/>
 ![](https://github-readme-stats.vercel.app/api/top-langs/?username=Iamhuzaifasabahuddin&theme=dark&hide_border=false&include_all_commits=true&count_private=false&layout=compact)
-
-<!-- Proudly created with GPRM ( https://gprm.itsvg.in ) -->
