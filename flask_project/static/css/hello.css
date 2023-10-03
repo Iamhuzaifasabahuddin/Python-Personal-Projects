@@ -1,0 +1,17 @@
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+  font-family: "Arial", sans-serif;
+}
+
+.centered-content {
+  text-align: center;
+  font-size: 50px;
+}
+
+.centered-content h1 span {
+  color: #FF1111;
+}

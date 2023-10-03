@@ -2,8 +2,7 @@ import json
 import random
 
 import requests
-from flask import Flask, url_for, render_template
-from markupsafe import escape
+from flask import Flask, render_template, redirect, url_for
 
 app = Flask(__name__)
 
@@ -26,7 +25,12 @@ def index() -> str:
     Returns:
         Elements of the main page
     """
-    return "Main page by default"
+    return render_template('index.html')
+
+
+@app.errorhandler(404)
+def page_not_found(error):
+    return redirect(url_for('index'))
 
 
 @app.route('/random/')
