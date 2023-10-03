@@ -1,12 +1,9 @@
 ## *HEY THERE 👋🏼, HUZAIFA HERE 🤜🏼🤛🏼*  
 ## 💫 About Me:
-👨🏻‍🎓I'm a second-year student at the University of Leicester, and my coding journey began early on. Python has been my faithful companion throughout this exciting journey. I'm constantly exploring new horizons in the world of programming. Currently, my focus is on advancing my skills in Python and harnessing its power through frameworks like Pandas, NumPy, and Matplotlib.
-
-As a dedicated individual, I'm driven to excel in the industry and aspire to inspire others along the way. Let's connect and code the future together! 💻🚀
-
-Additionally, I'm well-equipped with creating fun Discord bots and utilizing multiple APIs such as Google APIs for Calendar and Drive integration. On top of all that, I'm also learning Java on the side.
-
-I'm also well equipped and understand basics and some intermediate Sqllite and Git flow.
+👨🏻‍🎓I'm a second-year student at the University of Leicester, and my coding journey began early in my life. Python has been my loyal companion throughout this thrilling journey. Continually, I'm exploring new horizons in the programming world, with my current focus directed towards enhancing my proficiency in Python and leveraging its capabilities through frameworks like Pandas, NumPy, and Matplotlib.
+As a dedicated individual, I'm propelled by the aspiration to excel in the industry and inspire others on this path. Let's collaborate and shape the future through code! 💻🚀
+Furthermore, I'm well-versed in crafting entertaining Discord bots and proficient in employing various APIs, including Google APIs for Calendar and Drive integration. Additionally, I'm expanding my knowledge by learning Java on the side. 🤖☕
+I also possess a solid grasp of fundamental and intermediate skills in SQLite and understand the Git flow. 📊🔄
 
 ## 🌐 Socials:
 [![Instagram](https://img.shields.io/badge/Instagram-%23E4405F.svg?logo=Instagram&logoColor=white)](https://instagram.com/Iamhuzaifasabahuddin) [![LinkedIn](https://img.shields.io/badge/LinkedIn-%230077B5.svg?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/huzaifa-sabah-uddin?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=ios_app) 
