@@ -2,21 +2,22 @@ import json
 import random
 
 import requests
-from flask import Flask
+from flask import Flask, url_for, render_template
 from markupsafe import escape
 
 app = Flask(__name__)
 
 
-@app.route('/<name>')
-def hello_user(name: str) -> str:
+@app.route('/hello/')
+@app.route('/hello/<name>')
+def hello_user(name: str = None) -> str:
     """Greets user
     Args:
         name: str: name of the user
     Returns:
         Greets the user
     """
-    return f"Hello, {escape(name)}!"
+    return render_template('hello.html', name=name)
 
 
 @app.route('/')
@@ -28,19 +29,9 @@ def index() -> str:
     return "Main page by default"
 
 
-@app.route('/random')
-def random_generator() -> str:
-    """Generates random numbers from 1 to 1000
-
-    Returns:
-        Random generated number
-    """
-    generated: int = random.randrange(1, 1000)
-    return f"Random generated number {generated}!"
-
-
+@app.route('/random/')
 @app.route('/random/<int:limit>')
-def random_generator_range(limit: int) -> str:
+def random_generator_range(limit: int = None) -> str:
     """Generates a random number between 1 and user specified
 
     Args:
@@ -49,8 +40,12 @@ def random_generator_range(limit: int) -> str:
     Returns:
         Random number between 1 and user specified
     """
-    generated: int = random.randrange(1, limit + 1)
-    return f"Random generated number {generated}!"
+    if limit:
+        generated: int = random.randrange(1, limit + 1)
+    else:
+        generated: int = random.randrange(1, 1000)
+
+    return render_template('random.html', generated=generated)
 
 
 def quote() -> str:
@@ -67,4 +62,9 @@ def quote_generator() -> str:
     Returns:
         Quote
     """
-    return f"Quote of the day is: \n{quote()}!"
+    generated = quote()
+    return render_template('quote.html', generated=generated)
+
+
+if __name__ == '__main__':
+    app.run(debug=False, port=8080)
