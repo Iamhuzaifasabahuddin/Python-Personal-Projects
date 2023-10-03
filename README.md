@@ -1,8 +1,11 @@
 ## *HEY THERE 👋🏼, HUZAIFA HERE 🤜🏼🤛🏼*  
 ## 💫 About Me:
 👨🏻‍🎓I'm a second-year student at the University of Leicester, and my coding journey began early in my life. Python has been my loyal companion throughout this thrilling journey. Continually, I'm exploring new horizons in the programming world, with my current focus directed towards enhancing my proficiency in Python and leveraging its capabilities through frameworks like Pandas, NumPy, and Matplotlib.
+
 As a dedicated individual, I'm propelled by the aspiration to excel in the industry and inspire others on this path. Let's collaborate and shape the future through code! 💻🚀
+
 Furthermore, I'm well-versed in crafting entertaining Discord bots and proficient in employing various APIs, including Google APIs for Calendar and Drive integration. Additionally, I'm expanding my knowledge by learning Java on the side. 🤖☕
+
 I also possess a solid grasp of fundamental and intermediate skills in SQLite and understand the Git flow. 📊🔄
 
 ## 🌐 Socials:
