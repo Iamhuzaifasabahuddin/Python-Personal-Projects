@@ -5,6 +5,7 @@
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/hello.css') }}">
 </head>
 <body>
+{% include 'navbar.html' %}
 <div class="centered-content">
   <h1><span>Greetings</span></h1>
   {% if name %}

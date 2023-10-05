@@ -8,7 +8,6 @@ app = Flask(__name__)
 
 
 @app.route('/hello/')
-@app.route('/hello/<name>')
 def hello_user(name: str = None) -> str:
     """Greets user
     Args:
@@ -16,7 +15,7 @@ def hello_user(name: str = None) -> str:
     Returns:
         Greets the user
     """
-    return render_template('hello.html', name=name)
+    return render_template('Home.html', name=name)
 
 
 @app.route('/')
@@ -25,7 +24,7 @@ def index() -> str:
     Returns:
         Elements of the main page
     """
-    return render_template('index.html')
+    return render_template('Home.html')
 
 
 @app.errorhandler(404)
