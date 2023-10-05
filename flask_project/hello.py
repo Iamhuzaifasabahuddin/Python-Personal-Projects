@@ -7,29 +7,45 @@ from flask import Flask, render_template, redirect, url_for
 app = Flask(__name__)
 
 
-@app.route('/hello/')
-def hello_user(name: str = None) -> str:
-    """Greets user
-    Args:
-        name: str: name of the user
-    Returns:
-        Greets the user
-    """
-    return render_template('Home.html', name=name)
-
-
 @app.route('/')
-def index() -> str:
+def home() -> str:
     """Displays the main page
     Returns:
         Elements of the main page
     """
-    return render_template('Home.html')
+    return (render_template('Home.html'))
+
+
+@app.route('/about/')
+def about() -> str:
+    """Displays the about page
+    Returns:
+        Elements of the about page
+    """
+    return (render_template('About.html'))
+
+
+@app.route('/projects/')
+def project() -> str:
+    """Displays the project page
+    Returns:
+        Elements of the project page
+    """
+    return render_template('Project.html')
+
+
+@app.route('/contact/')
+def contact() -> str:
+    """Displays the contact page
+     Returns:
+         Elements of the contact page
+     """
+    return render_template('Contact.html')
 
 
 @app.errorhandler(404)
 def page_not_found(error):
-    return redirect(url_for('index'))
+    return redirect(url_for('home'))
 
 
 @app.route('/random/')
