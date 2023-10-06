@@ -27,7 +27,7 @@ def experiment(hat, expected_balls, num_balls_drawn, num_experiments):
         success = True
         for color, count in expected_balls.items():
             if drawn_balls.count(color) < count:
-                # or use success all(drawn_balls.count(color)>=color for color, count in expected_balls.items())
+                # or use success all(drawn_balls.count(color)>=count for color, count in expected_balls.items())
                 # if success:
                 #   nums_success +=1
                 success = False
