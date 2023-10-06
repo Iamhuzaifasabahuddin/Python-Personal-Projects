@@ -1,23 +1,37 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/about.css') }}">
-</head>
-<body>
-<header>
-    <div class="Header-name">Huzaifa Sabah Uddin</div>
-    <nav class="nav_links">
-        <ul>
-            <li><a href="/">Home</a></li>
-            <li><a href="/about">About</a></li>
-            <li><a href="/projects">Projects</a></li>
-            <li><a href="/contact">Contact</a></li>
-        </ul>
-    </nav>
-</header>
-<div class="centered-content">
-    <h1>My About Page</h1>
-</div>
-</body>
-</html>
+{% extends 'Base.html' %}
+{% block content %}
+<title>About</title>
+<main class="main main--about">
+    <h1 class="mainheading main--heading1">Education<br/></h1>
+    <br/>
+    <!--    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="logo"-->
+    <!--         width="200" height="150">-->
+    <p>
+        Hey there! My name is Huzaifa Sabah Uddin, but you can call me Hexz
+        I'm a 2nd Year software engineering student at the University of Leicester
+    </p>
+    <br/>
+
+    <h1 class="mainheading main--heading2">Tech Stack<br/></h1>
+    <br/>
+    <div class="tech-stack">
+        <img src="https://img.shields.io/badge/java-%23ED8B00.svg?style=for-the-badge&logo=openjdk&logoColor=white"
+             style="float:right;" alt="Java">
+        <img src="https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54"
+             alt="Python">
+        <img src="https://img.shields.io/badge/Flask-%23000.svg?style=for-the-badge&logo=flask&logoColor=white"
+             alt="Flask">
+        <img src="https://img.shields.io/badge/pandas-%23150458.svg?style=for-the-badge&logo=pandas&logoColor=white"
+             alt="Pandas">
+        <img src="https://img.shields.io/badge/numpy-%23013243.svg?style=for-the-badge&logo=numpy&logoColor=white"
+             alt="NumPy">
+        <img src="https://img.shields.io/badge/Git-fc6d26?style=for-the-badge&logo=git&logoColor=white" alt="GIT">
+        <img src="https://img.shields.io/badge/sqlite-%2307405e.svg?style=for-the-badge&logo=sqlite&logoColor=white"
+             alt="SQLite">
+    </div>
+    <h1 class="mainheading main--heading3">Skills<br/></h1>
+    <br/>
+    <h1 class="mainheading main--heading4">Hobbies and Interests<br/></h1>
+
+</main>
+{% endblock %}

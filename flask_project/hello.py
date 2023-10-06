@@ -3,6 +3,7 @@ import random
 
 import requests
 from flask import Flask, render_template, redirect, url_for
+from jinja2 import TemplateNotFound
 
 app = Flask(__name__)
 
@@ -13,35 +14,43 @@ def home() -> str:
     Returns:
         Elements of the main page
     """
-    return (render_template('Home.html'))
+    return render_template('Home.html')
 
 
 @app.route('/about/')
-def about() -> str:
+def about():
     """Displays the about page
     Returns:
         Elements of the about page
     """
-    return (render_template('About.html'))
+    try:
+        return render_template('About.html')
+    except TemplateNotFound:
+        return redirect(url_for('home'))
 
 
 @app.route('/projects/')
-def project() -> str:
+def project():
     """Displays the project page
     Returns:
         Elements of the project page
     """
-    return render_template('Project.html')
+    try:
+        return render_template('Project.html')
+    except TemplateNotFound:
+        return redirect(url_for('home'))
 
 
 @app.route('/contact/')
-def contact() -> str:
+def contact():
     """Displays the contact page
      Returns:
          Elements of the contact page
      """
-    return render_template('Contact.html')
-
+    try:
+        return render_template('Contact.html')
+    except TemplateNotFound:
+        return redirect(url_for('home'))
 
 @app.errorhandler(404)
 def page_not_found(error):
