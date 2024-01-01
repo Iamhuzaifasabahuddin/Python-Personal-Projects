@@ -42,6 +42,7 @@ def create_database():
     except sqlite3.DatabaseError as error:
         logging.info(f'Error creating database! {error}')
 
+
 def show_message(message_label: tk.Label, text: str, colour: str, duration=2000) -> None:
     """
        Display a message on the GUI.
@@ -556,10 +557,14 @@ def view(date: Calendar, message_label: tk.Label, view_box: tk.scrolledtext.Scro
                 amount = row[2]
 
                 view_box.insert(tk.END, f"{index}\t{date_str}\t\t{category}\t\t\t\t£ {amount}\n", "custom_font")
-                spent += amount
-                available = row[3]
-                total_deposit = row[4]
-
+                if category != "MONTHLY DEPOSIT!":
+                    spent += amount
+                    available = row[3]
+                    total_deposit = row[4]
+                else:
+                    spent = 0
+                    available = row[3]
+                    total_deposit = row[4]
             view_box.insert(tk.END, f"\nTOTAL AVAILABLE: £{numerize.numerize(available)}\n"
                                     f"TOTAL SPENT: £{numerize.numerize(spent)}\n"
                                     f"TOTAL DEPOSITED: £{numerize.numerize(total_deposit)}", "custom_font")
@@ -593,30 +598,44 @@ def delete(date: Calendar, category: Callable, message_label: tk.Label, toggle_d
         selected_date = date.parse_date(date.get_date())
         connection = sqlite3.connect("Expenses.db")
         cursor = connection.cursor()
-        results = cursor.execute("SELECT * FROM Transactions WHERE strftime('%Y-%m-%d', Date) = ? AND Category = ?",
-                                 (selected_date.strftime('%Y-%m-%d'), option.capitalize()))
-        if not results.fetchall():
-            show_message(message_label, text=f"{selected_date} data not found!", colour='red')
-            logging.info(f"{selected_date} deletion unsuccessful!")
+        print(option)
+        if option == "MONTHLY DEPOSIT!":
+            results = cursor.execute("SELECT * FROM Transactions WHERE strftime('%Y-%m', Date) = ? AND Category = ?",
+                                     (selected_date.strftime('%Y-%m'), "MONTHLY DEPOSIT!"))
+            if not results.fetchall():
+                show_message(message_label, text=f"{selected_date} data not found!", colour='red')
+                logging.info(f"{selected_date} deletion unsuccessful!")
+            else:
+                cursor.execute("DELETE FROM Transactions WHERE strftime('%Y-%m', Date) = ? AND Category = ?",
+                               (selected_date.strftime('%Y-%m'), "MONTHLY DEPOSIT!"))
+                show_message(message_label, text=f"Deleted data for date {selected_date} & updated!", colour="green")
+                logging.info(f"{selected_date} date data successfully deleted & updated!")
+                connection.commit()
         else:
-            get_values = cursor.execute("SELECT Available, Amount, Total FROM Transactions WHERE"
-                                        " strftime('%Y-%m-%d', Date)= ? AND Category = ?",
-                                        (selected_date.strftime('%Y-%m-%d'), option.capitalize()))
-            available, amount, total = 0, 0, 0
-            for row in get_values.fetchall():
-                available += row[0]
-                amount += row[1]
-                total += row[2]
-            updated_total = total + amount
-            updated_available = available + amount
-            cursor.execute("DELETE FROM Transactions WHERE strftime('%Y-%m-%d', Date)= ? AND Category = ?",
-                           (selected_date, option.capitalize()))
-            cursor.execute("UPDATE Transactions SET Available = ?, Total = ? WHERE strftime('%Y-%m', Date) = ?",
-                           (updated_available, updated_total, selected_date.strftime('%Y-%m')))
-            show_message(message_label, text=f"Deleted data for date {selected_date} & updated!", colour="green")
-            logging.info(f"{selected_date} date data successfully deleted & updated!")
-            connection.commit()
-            toggle_delete(False)
+            results = cursor.execute("SELECT * FROM Transactions WHERE strftime('%Y-%m-%d', Date) = ? AND Category = ?",
+                                 (selected_date.strftime('%Y-%m-%d'), option.capitalize()))
+            if not results.fetchall():
+                show_message(message_label, text=f"{selected_date} data not found!", colour='red')
+                logging.info(f"{selected_date} deletion unsuccessful!")
+            else:
+                get_values = cursor.execute("SELECT Available, Amount, Total FROM Transactions WHERE"
+                                            " strftime('%Y-%m-%d', Date)= ? AND Category = ?",
+                                            (selected_date.strftime('%Y-%m-%d'), option.capitalize()))
+                available, amount, total = 0, 0, 0
+                for row in get_values.fetchall():
+                    available += row[0]
+                    amount += row[1]
+                    total += row[2]
+                updated_total = total + amount
+                updated_available = available + amount
+                cursor.execute("DELETE FROM Transactions WHERE strftime('%Y-%m-%d', Date)= ? AND Category = ?",
+                               (selected_date, option.capitalize()))
+                cursor.execute("UPDATE Transactions SET Available = ?, Total = ? WHERE strftime('%Y-%m', Date) = ?",
+                               (updated_available, updated_total, selected_date.strftime('%Y-%m')))
+                show_message(message_label, text=f"Deleted data for date {selected_date} & updated!", colour="green")
+                logging.info(f"{selected_date} date data successfully deleted & updated!")
+                connection.commit()
+                toggle_delete(False)
         connection.close()
     except sqlite3.Error as error:
         show_message(message_label, text=f"SQLite error: {error}", colour="red")
@@ -941,7 +960,7 @@ def gui() -> None:
 
     # Delete fields
     delete_frame = tk.Frame(content_frame)
-    Categories = ["", "Food", "Entertainment", "Business", "Shopping", "Misc", "Other"]
+    Categories = ["", "Food", "Entertainment", "Business", "Shopping", "Misc", "Other", "MONTHLY DEPOSIT!"]
     delete_label_category = tk.Label(delete_frame, text="Select a category: ", font=("Quicksand", 17, "italic"))
     Category_delete = tk.StringVar()
     deletion_box = ttk.Combobox(delete_frame, textvariable=Category_delete, font=("Quicksand", 15, "italic"))
