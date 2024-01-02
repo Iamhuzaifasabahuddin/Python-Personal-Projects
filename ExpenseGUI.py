@@ -562,7 +562,6 @@ def view(date: Calendar, message_label: tk.Label, view_box: tk.scrolledtext.Scro
                     available = row[3]
                     total_deposit = row[4]
                 else:
-                    spent = 0
                     available = row[3]
                     total_deposit = row[4]
             view_box.insert(tk.END, f"\nTOTAL AVAILABLE: £{numerize.numerize(available)}\n"
